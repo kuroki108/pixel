@@ -191,7 +191,7 @@ class GamesRoles(RoleSelect):
                 discord.SelectOption(label="Roblox",                     value="1519755405398507671"),  
                 discord.SelectOption(label="League of Legends",          value="1519755430417662105"),  
                 discord.SelectOption(label="Helldivers",                 value="1519755448104910949"), 
-                discord.SelectOption(label="Warframe",                    value="1519756166563889293"),
+                discord.SelectOption(label="Warframe",                   value="1519756166563889293"),
                 discord.SelectOption(label="Repo",                       value="1519756146049683496"),
             ]
         )
@@ -206,14 +206,6 @@ class GamesRoles(RoleSelect):
 
         if member is None:
             await interaction.response.send_message("Member nicht gefunden.", ephemeral=True)
-            return
-
-        booster_role = guild.get_role(self.booster_role_id)
-        if booster_role is None or booster_role not in member.roles:
-            await interaction.response.send_message(
-                "Diese Farbrollen sind nur für **Server Booster** verfügbar!",
-                ephemeral=True
-            )
             return
 
         await super().callback(interaction)
@@ -233,5 +225,5 @@ class RoleView02(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(GamesRoles())
         self.add_item(PingRoles())
+        self.add_item(GamesRoles())
