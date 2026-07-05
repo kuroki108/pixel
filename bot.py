@@ -1,4 +1,4 @@
-#Atlas System
+#Pixel System
 import discord
 import os
 from dotenv import load_dotenv
@@ -6,6 +6,12 @@ from discord.ext import commands
 
 # Modules
 from modules.selfroles import RoleView01, RoleView02
+
+# Ticket System
+from ticket_system.utils.config import cfg
+from ticket_system.utils.database import db
+from ticket_system.views.ticket_views import TicketCategoryView, TicketControlView
+from ticket_system.views.application_views import ApplicationControlView, app_db
 
 # -------------------------------------------------------
 
@@ -45,11 +51,18 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(
-    command_prefix="!",
+    command_prefix=cfg["prefix"],
     intents=intents,
-    help_command=None
+    help_command=None,
 )
 
+# -------------------------------------------------------
+# Setup Hook — lädt Extensions bevor der Bot sich verbindet
+# -------------------------------------------------------
+
+@bot.event
+async def setup_hook():
+    await bot.load_extension("ticket_system")
 
 # -------------------------------------------------------
 # Events
@@ -58,15 +71,39 @@ bot = commands.Bot(
 @bot.event
 async def on_ready():
     print(f"\n{'─'*45}")
-    print(f"  ✅  Eingeloggt als : {bot.user}")
+    print(f"  ✅  Eingeloggt als : {bot.user} ({bot.user.id})")
+    print(f"  📡  Server        : {len(bot.guilds)}")
 
     # --- Selfrole Views ---
     if not bot.persistent_views:
         bot.add_view(RoleView01())
         bot.add_view(RoleView02())
 
+    # --- Ticket Views ---
+    bot.add_view(TicketCategoryView())
+    for tid in db.all():
+        bot.add_view(TicketControlView(int(tid)))
+    for aid in app_db.all():
+        bot.add_view(ApplicationControlView(int(aid)))
 
+    # --- Slash-Command Sync ---
+    try:
+        guild = discord.Object(id=int(cfg["guild_id"]))
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"  🔄  Slash-Commands : {len(synced)} synchronisiert")
+        bot.tree.clear_commands(guild=None)
+        await bot.tree.sync()
+    except Exception as e:
+        print(f"  ❌  Sync-Fehler    : {e}")
 
+    # --- Weekly Task (deaktiviert) ---
+    # if not weekly_task.is_running():
+    #     weekly_task._bot = bot
+    #     weekly_task.start()
+
+    await bot.change_presence(status=discord.Status.online, activity=None)
+    print(f"{'─'*45}\n")
 
 
 @bot.event
@@ -78,6 +115,20 @@ async def on_command_error(ctx, error):
         raise error
 
 
+@bot.event
+async def on_app_command_error(interaction: discord.Interaction, error):
+    """Fehlerhandler für Slash-Commands (Ticket-System, …)"""
+    msg = (
+        "❌ Keine Berechtigung."
+        if isinstance(error, discord.app_commands.MissingPermissions)
+        else f"❌ Fehler: {error}"
+    )
+    if interaction.response.is_done():
+        await interaction.followup.send(msg, ephemeral=True)
+    else:
+        await interaction.response.send_message(msg, ephemeral=True)
+    print(f"[AppCommandError] {error}")
+
 # -------------------------------------------------------
 # Embed Builder
 # -------------------------------------------------------
@@ -87,6 +138,10 @@ def build_selfroles_embed() -> discord.Embed:
     embed.set_image(url=EMBED_IMAGE_URL)
     return embed
 
+
+# -------------------------------------------------------
+# Prefix-Commands
+# -------------------------------------------------------
 
 @bot.command()
 async def ping(ctx):
