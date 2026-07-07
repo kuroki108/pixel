@@ -7,11 +7,6 @@ from discord.ext import commands
 # Modules
 from modules.selfroles import RoleView01, RoleView02
 
-# Ticket System
-from ticket_system.utils.config import cfg
-from ticket_system.utils.database import db
-from ticket_system.views.ticket_views import TicketCategoryView, TicketControlView
-from ticket_system.views.application_views import ApplicationControlView, app_db
 
 # -------------------------------------------------------
 
@@ -31,13 +26,6 @@ EMBED_DESC      = (
     "Du kannst Rollen jederzeit wechseln oder entfernen."
 )
 
-COLOR_IMAGE_URL = "attachment://banner_color.png"
-COLOR_COLOR     = discord.Color.purple()
-COLOR_TITLE     = "🎨 Wähl deine Farbe"
-COLOR_DESC      = (
-    "Als Booster hast du Zugang zu exklusiven Farbrollen!\n"
-    "Such dir eine Farbe aus und mach deinen Namen zum Hingucker."
-)
 
 ADMIN_ROLES     = (1522925471912820816, 1522925471740989539, 1519697116212232232)
 BOOSTER_ROLE_ID = 1435948381355900989
@@ -51,18 +39,11 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(
-    command_prefix=cfg["prefix"],
+    command_prefix="!",
     intents=intents,
     help_command=None,
 )
 
-# -------------------------------------------------------
-# Setup Hook — lädt Extensions bevor der Bot sich verbindet
-# -------------------------------------------------------
-
-@bot.event
-async def setup_hook():
-    await bot.load_extension("ticket_system")
 
 # -------------------------------------------------------
 # Events
@@ -79,55 +60,17 @@ async def on_ready():
         bot.add_view(RoleView01())
         bot.add_view(RoleView02())
 
-    # --- Ticket Views ---
-    bot.add_view(TicketCategoryView())
-    for tid in db.all():
-        bot.add_view(TicketControlView(int(tid)))
-    for aid in app_db.all():
-        bot.add_view(ApplicationControlView(int(aid)))
-
-    # --- Slash-Command Sync ---
-    try:
-        guild = discord.Object(id=int(cfg["guild_id"]))
-        bot.tree.copy_global_to(guild=guild)
-        synced = await bot.tree.sync(guild=guild)
-        print(f"  🔄  Slash-Commands : {len(synced)} synchronisiert")
-        bot.tree.clear_commands(guild=None)
-        await bot.tree.sync()
-    except Exception as e:
-        print(f"  ❌  Sync-Fehler    : {e}")
-
-    # --- Weekly Task (deaktiviert) ---
-    # if not weekly_task.is_running():
-    #     weekly_task._bot = bot
-    #     weekly_task.start()
-
-    await bot.change_presence(status=discord.Status.online, activity=None)
-    print(f"{'─'*45}\n")
 
 
 @bot.event
 async def on_command_error(ctx, error):
-    """Fehlerhandler für Prefix-Commands (!selfroles, !color, …)"""
+    """Fehlerhandler für Prefix-Commands (!selfroles)"""
     if isinstance(error, (commands.MissingRole, commands.MissingAnyRole)):
         await ctx.send("Du hast keine Berechtigung diesen Befehl auszuführen.", delete_after=3)
     else:
         raise error
 
 
-@bot.event
-async def on_app_command_error(interaction: discord.Interaction, error):
-    """Fehlerhandler für Slash-Commands (Ticket-System, …)"""
-    msg = (
-        "❌ Keine Berechtigung."
-        if isinstance(error, discord.app_commands.MissingPermissions)
-        else f"❌ Fehler: {error}"
-    )
-    if interaction.response.is_done():
-        await interaction.followup.send(msg, ephemeral=True)
-    else:
-        await interaction.response.send_message(msg, ephemeral=True)
-    print(f"[AppCommandError] {error}")
 
 # -------------------------------------------------------
 # Embed Builder
@@ -139,10 +82,7 @@ def build_selfroles_embed() -> discord.Embed:
     return embed
 
 
-# -------------------------------------------------------
-# Prefix-Commands
-# -------------------------------------------------------
-
+#Test-Command
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong 🏓")
@@ -168,31 +108,13 @@ async def selfroles(ctx):
                 except discord.HTTPException:
                     pass
 
-    try:
-        await ctx.message.delete()
-    except discord.HTTPException:
-        pass
 
     await ctx.send(file=file, embed=build_selfroles_embed(), view=RoleView01())
     await ctx.send(view=RoleView02())
 
 
-@bot.command()
-@commands.has_any_role(*ADMIN_ROLES)
-async def color(ctx):
-    file = discord.File("assets/banner_color.png", filename="banner_color.png")
-
-    async for message in ctx.channel.history(limit=50):
-        if message.author == bot.user and (message.components or message.embeds):
-            try:
-                await message.delete()
-            except discord.HTTPException:
-                pass
-
-
-# -------------------------------------------------------
-# Start
 # -------------------------------------------------------
 
 if __name__ == "__main__":
     bot.run(TOKEN)
+

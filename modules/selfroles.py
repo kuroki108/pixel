@@ -29,10 +29,16 @@ class RoleSelect(discord.ui.Select):
             selected_roles = [
                 role for role_id in self.values
                 if (role := guild.get_role(int(role_id)))
+
             ]
             roles_to_remove = [r for r in all_group_roles if r in member.roles]
+
+
+
             if roles_to_remove:
                 await member.remove_roles(*roles_to_remove)
+
+
             if selected_roles:
                 await member.add_roles(*selected_roles)
             names = ", ".join(f"**{r.name}**" for r in selected_roles)
@@ -47,11 +53,15 @@ class RoleSelect(discord.ui.Select):
                     ephemeral=True
                 )
                 return
+            
+
             if selected in member.roles:
                 await member.remove_roles(selected)
                 response_text = f"Du hast die Rolle **{selected.name}** entfernt."
             else:
                 roles_to_remove = [r for r in all_group_roles if r in member.roles]
+
+
                 if roles_to_remove:
                     await member.remove_roles(*roles_to_remove)
                 await member.add_roles(selected)
@@ -69,12 +79,12 @@ class AgeRoles(RoleSelect):
             min_values=1,
             max_values=1,
             options=[
-                discord.SelectOption(label="16 bis 17", value="1519735748637622292"),
-                discord.SelectOption(label="18 bis 20",  value="1519735820926320731"),
-                discord.SelectOption(label="21 bis 25",  value="1519735859891404930"),
-                discord.SelectOption(label="26 bis 30",  value="1519735846029361255"),
-                discord.SelectOption(label="31 bis 35",  value="1519735966431055912"),
-                discord.SelectOption(label="35 + (Unc)", value="1519736007245955176"),
+                discord.SelectOption(label="16 bis 17",     value="1519735748637622292"),
+                discord.SelectOption(label="18 bis 20",     value="1519735820926320731"),
+                discord.SelectOption(label="21 bis 25",     value="1519735859891404930"),
+                discord.SelectOption(label="26 bis 30",     value="1519735846029361255"),
+                discord.SelectOption(label="31 bis 35",     value="1519735966431055912"),
+                discord.SelectOption(label="35 + (Unc)",    value="1519736007245955176"),
             ]
         )
 
@@ -88,9 +98,9 @@ class GenderRoles(RoleSelect):
             min_values=1,
             max_values=1,
             options=[
-                discord.SelectOption(label="Männlich", value="1435591961695490180"),  
-                discord.SelectOption(label="Weiblich",  value="1435591966401232928"),
-                discord.SelectOption(label="Trans",     value="1436359645211136111"),  
+                discord.SelectOption(label="Männlich",      value="1435591961695490180"),  
+                discord.SelectOption(label="Weiblich",      value="1435591966401232928"),
+                discord.SelectOption(label="Trans",         value="1436359645211136111"),  
             ]
         )
 
@@ -121,7 +131,7 @@ class StateRoles(RoleSelect):
                 discord.SelectOption(label="Schleswig-Holstein",      value="1435592098651963502"),                
                 discord.SelectOption(label="Thüringen",               value="1435592093518135368"),                
                 discord.SelectOption(label="Österreich",              value="1436238374678822922"),                
-                discord.SelectOption(label="Schweiz",                 value="1436238722847871016"),            
+                discord.SelectOption(label="Schweiz",                 value="1436238722847871016"),          
                 ]
         )
 
@@ -135,9 +145,9 @@ class DM_StatusRoles(RoleSelect):
             min_values=1,
             max_values=1,
             options=[
-                discord.SelectOption(label="Dm´s -offen",       value="1435999472814653550"),
-                discord.SelectOption(label="Dm´s -anfrage",    value="1436243877911855124"), 
-                discord.SelectOption(label="Dm´s -close", value="1436243676371222538"),  
+                discord.SelectOption(label="Dm's -offen",             value="1435999472814653550"),
+                discord.SelectOption(label="Dm's -anfrage",           value="1436243877911855124"), 
+                discord.SelectOption(label="Dm's -close",             value="1436243676371222538"),  
             ]
         )
 
@@ -150,16 +160,16 @@ class PingRoles(RoleSelect):
         super().__init__(
             custom_id="select_ping",
             placeholder="Ping",
-            min_values=1,
+            min_values=0,
             max_values=7,
             options=[
-                discord.SelectOption(label="Bump",                    value="1440952671858331739"),  
+                discord.SelectOption(label="Bump",                      value="1440952671858331739"),  
                 discord.SelectOption(label="Umfragen",                  value="1519754279366295782"), 
                 discord.SelectOption(label="Neuigkeiten/Ankündigungen", value="1519754313239367921"),  
                 discord.SelectOption(label="Giveaways",                 value="1519754361511870575"), 
                 discord.SelectOption(label="Events",                    value="1519754339629924453"), 
                 discord.SelectOption(label="Minigames",                 value="1519754411000205452"),  
-                discord.SelectOption(label="Dead Chat",                value="1440262128564174939"), 
+                discord.SelectOption(label="Dead Chat",                 value="1440262128564174939"), 
             ]
         )
 
@@ -172,8 +182,8 @@ class GamesRoles(RoleSelect):
         super().__init__(
             custom_id="select_games",
             placeholder="Games",
-            min_values=1,
-            max_values=17,
+            min_values=0,
+            max_values=18,
             options=[
                 discord.SelectOption(label="Spielersuche",               value="1519755098169934015"),  
                 discord.SelectOption(label="Minecraft",                  value="1519755129367040101"),  
@@ -196,19 +206,6 @@ class GamesRoles(RoleSelect):
             ]
         )
 
-
-
-
-
-    async def callback(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        member = guild.get_member(interaction.user.id) if guild else None
-
-        if member is None:
-            await interaction.response.send_message("Member nicht gefunden.", ephemeral=True)
-            return
-
-        await super().callback(interaction)
 
 
 class RoleView01(discord.ui.View):
