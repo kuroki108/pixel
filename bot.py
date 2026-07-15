@@ -1,4 +1,5 @@
-#Pixel System
+#Atlas System
+
 import discord
 import os
 from dotenv import load_dotenv
@@ -6,7 +7,6 @@ from discord.ext import commands
 
 # Modules
 from modules.selfroles import RoleView01, RoleView02
-
 
 # -------------------------------------------------------
 
@@ -18,7 +18,7 @@ if TOKEN is None:
 # -------------------------------------------------------
 # Selfroles Embed
 # -------------------------------------------------------
-EMBED_IMAGE_URL = "attachment://banner.png"
+EMBED_IMAGE_URL = "attachment://selfroles-bg.gif"
 EMBED_COLOR     = discord.Color.purple()
 EMBED_TITLE     = "Selfroles"
 EMBED_DESC      = (
@@ -26,9 +26,7 @@ EMBED_DESC      = (
     "Du kannst Rollen jederzeit wechseln oder entfernen."
 )
 
-
-ADMIN_ROLES     = (1522925471912820816, 1522925471740989539, 1519697116212232232)
-BOOSTER_ROLE_ID = 1435948381355900989
+ADMIN_ROLES     = (1525603628339957947, 1525603628339957944)
 
 # -------------------------------------------------------
 # Bot Setup
@@ -44,6 +42,10 @@ bot = commands.Bot(
     help_command=None,
 )
 
+
+@bot.event
+async def setup_hook():
+    await bot.load_extension("modules.onboarding")
 
 # -------------------------------------------------------
 # Events
@@ -61,15 +63,13 @@ async def on_ready():
         bot.add_view(RoleView02())
 
 
-
 @bot.event
 async def on_command_error(ctx, error):
-    """Fehlerhandler für Prefix-Commands (!selfroles)"""
-    if isinstance(error, (commands.MissingRole, commands.MissingAnyRole)):
+    """Fehlerhandler für Prefix-Commands (!selfroles, …)"""
+    if isinstance(error, commands.MissingAnyRole):
         await ctx.send("Du hast keine Berechtigung diesen Befehl auszuführen.", delete_after=3)
     else:
         raise error
-
 
 
 # -------------------------------------------------------
@@ -81,17 +81,14 @@ def build_selfroles_embed() -> discord.Embed:
     embed.set_image(url=EMBED_IMAGE_URL)
     return embed
 
-
-#Test-Command
-@bot.command()
-async def ping(ctx):
-    await ctx.send("Pong 🏓")
-
+# -------------------------------------------------------
+# Prefix-Commands
+# -------------------------------------------------------
 
 @bot.command()
 @commands.has_any_role(*ADMIN_ROLES)
 async def selfroles(ctx):
-    file = discord.File("assets/banner.png", filename="banner.png")
+    file = discord.File("assets/selfroles-bg.gif", filename="selfroles-bg.gif")
 
     selfroles_ids = {"select_gender", "select_age", "select_state", "select_dm_status", "select_games", "select_ping"}
     async for message in ctx.channel.history(limit=50):
@@ -108,13 +105,20 @@ async def selfroles(ctx):
                 except discord.HTTPException:
                     pass
 
+    try:
+        await ctx.message.delete()
+    except discord.HTTPException:
+        pass
 
-    await ctx.send(file=file, embed=build_selfroles_embed(), view=RoleView01())
+
+    await ctx.send("**Selfroles**")
+    await ctx.send(file=file)
+    await ctx.send(view=RoleView01())
     await ctx.send(view=RoleView02())
 
-
+# -------------------------------------------------------
+# Start
 # -------------------------------------------------------
 
 if __name__ == "__main__":
     bot.run(TOKEN)
-
