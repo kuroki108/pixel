@@ -1,0 +1,52 @@
+import discord
+import datetime
+from discord.ext import tasks
+from zoneinfo import ZoneInfo
+
+WEEKLY_CHANNEL_ID = 1489363395613294633
+
+TIMEZONE = ZoneInfo("Europe/Berlin")
+TIME01 = datetime.time(hour=18, minute=8, tzinfo=TIMEZONE)
+TIME02 = datetime.time(hour=18, minute=11, tzinfo=TIMEZONE)
+
+def build_weekly_embed() -> discord.Embed:
+    return discord.Embed(
+        title="Mobbingkreis",
+        description=(
+            "So, es ist wieder soweit! 🎉\n"
+            "Einmal bitte eintragen wer heute Abend um 20:00 Uhr kann."
+        ),
+        color=discord.Color.purple()
+    )
+
+async def send_weekly_notification(bot: discord.Client):
+    try:
+        channel = bot.get_channel(WEEKLY_CHANNEL_ID) or await bot.fetch_channel(WEEKLY_CHANNEL_ID)
+    except discord.NotFound:
+        print(f"[Weekly] Channel {WEEKLY_CHANNEL_ID} nicht gefunden!")
+        return
+    except discord.Forbidden:
+        print(f"[Weekly] Kein Zugriff auf Channel {WEEKLY_CHANNEL_ID}!")
+        return
+
+    msg = await channel.send(
+        "@everyone",
+        embed=build_weekly_embed(),
+        allowed_mentions=discord.AllowedMentions(everyone=True)
+    )
+    await msg.add_reaction("✅")
+    await msg.add_reaction("❌")
+
+@tasks.loop(time=[TIME01, TIME02])
+async def weekly_task():
+    # weekly_task.start(bot) übergibt den Bot als _injected-Attribut nicht direkt —
+    # daher speichern wir ihn beim Start (siehe unten)
+    bot = weekly_task._bot
+    now = datetime.datetime.now(TIMEZONE)
+
+    if now.weekday() == 3:  # Donnerstag
+        await send_weekly_notification(bot)
+
+@weekly_task.before_loop
+async def before_weekly():
+    await weekly_task._bot.wait_until_ready()

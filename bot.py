@@ -46,6 +46,7 @@ bot = commands.Bot(
 @bot.event
 async def setup_hook():
     await bot.load_extension("modules.onboarding")
+    await bot.load_extension("modules.counting")
 
 # -------------------------------------------------------
 # Events
