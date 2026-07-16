@@ -112,9 +112,9 @@ async def selfroles(ctx):
     except discord.HTTPException:
         pass
 
-
-    await ctx.send("**Selfroles**")
+    
     await ctx.send(file=file)
+    await ctx.send(embed=build_selfroles_embed())
     await ctx.send(view=RoleView01())
     await ctx.send(view=RoleView02())
 
