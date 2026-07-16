@@ -20,10 +20,11 @@ if TOKEN is None:
 # -------------------------------------------------------
 EMBED_IMAGE_URL = "attachment://selfroles-bg.gif"
 EMBED_COLOR     = discord.Color.purple()
-EMBED_TITLE     = "Selfroles"
+EMBED_TITLE     = "𝐒𝐄𝐋𝐅-𝐑𝐎𝐋𝐄𝐒 🌂"
 EMBED_DESC      = (
-    "Zeig der Community wer du bist!\n"
-    "Du kannst Rollen jederzeit wechseln oder entfernen."
+    "H𝗂𝖾𝗋 𝗄𝖺𝗇𝗇𝗌𝗍 𝖽𝗎 𝖽𝗂𝗋 𝗆𝗂𝗍 𝖾𝗂𝗇𝖾𝗆 𝗄𝗅𝗂𝖼𝗄 𝖽𝖾𝗂𝗇𝖾 𝗋𝗈𝗅𝗅𝖾𝗇 𝖺𝗎𝗌𝗐ä𝗁𝗅𝖾𝗇!\n"
+    "Wä𝗁𝗅𝖾 𝗓.𝖻. 𝖽𝖾𝗂𝗇 𝖺𝗅𝗍𝖾𝗋, 𝖽𝖾𝗂𝗇𝖾 𝗅𝗂𝖾𝖻𝗅𝗂𝗇𝗀𝗌𝗌𝗉𝗂𝖾𝗅𝖾 𝗈𝖽𝖾𝗋 𝗉𝗂𝗇𝗀-𝗋𝗈𝗅𝗅𝖾𝗇, 𝖽𝖺𝗆𝗂𝗍 𝖺𝗇𝖽𝖾𝗋𝖾 𝗆𝗂𝗍𝗀𝗅𝗂𝖾𝖽𝖾𝗋 𝗀𝗅𝖾𝗂𝖼𝗁 𝗌𝖾𝗁𝖾𝗇 𝗄ö𝗇𝗇𝖾𝗇, 𝗐𝖺𝗌 𝗓𝗎 𝖽𝗂𝗋 𝗉𝖺𝗌𝗌𝗍. \n"
+    "K𝖾𝗂𝗇𝖾 𝗌𝗈𝗋𝗀𝖾, 𝖽𝗎 𝗄𝖺𝗇𝗇𝗌𝗍 𝖽𝖾𝗂𝗇𝖾 𝗋𝗈𝗅𝗅𝖾𝗇 𝗃𝖾𝖽𝖾𝗋𝗓𝖾𝗂𝗍 ä𝗇𝖽𝖾𝗋𝗇 𝗈𝖽𝖾𝗋 𝖾𝗇𝗍𝖿𝖾𝗋𝗇𝖾𝗇."
 )
 
 ADMIN_ROLES     = (1525603628339957947, 1525603628339957944)

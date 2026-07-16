@@ -25,11 +25,6 @@ ROLE_IDS: list[int] = [
 
 
 class Onboarding(commands.Cog):
-    """
-    Kümmert sich um alles, was beim Beitritt eines neuen Mitglieds passiert:
-    - Automatische Rollenvergabe (siehe ROLE_IDS oben)
-    - Willkommensnachricht im Server-Channel
-    """
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -89,10 +84,11 @@ class Onboarding(commands.Cog):
             return
 
         embed = discord.Embed(
-            title="Willkommen! 👋",
+            title="𝐖𝐈𝐋𝐋𝐊𝐎𝐌𝐌𝐄𝐍! 🪻",
             description=(
-                f"Hey {member.mention}, schön dass du auf "
-                f"**{member.guild.name}** gelandet bist!"
+                f"Hey {member.mention}, 𝗌𝖼𝗁ö𝗇, 𝖽𝖺𝗌𝗌 𝖽𝗎 𝗍𝖾𝗂𝗅 𝗎𝗇𝗌𝖾𝗋𝖾𝗋 **{member.guild.name}** 𝖼𝗈𝗆𝗆𝗎𝗇𝗂𝗍𝗒 𝗀𝖾𝗐𝗈𝗋𝖽𝖾𝗇 𝖻𝗂𝗌𝗍!"
+                f"S𝖼𝗁𝖺𝗎 𝗓𝗎𝖾𝗋𝗌𝗍 𝗂𝗇 #𝗋𝖾𝗀𝖾𝗅𝗇 𝗎𝗇𝖽 𝗁𝗈𝗅 𝖽𝗂𝗋 𝗂𝗇 #𝗌𝖾𝗅𝖿-𝗋𝗈𝗅𝖾𝗌ᝰᐟ 𝖽𝖾𝗂𝗇𝖾 𝗋𝗈𝗅𝗅𝖾𝗇. D𝖺𝗇𝖺𝖼𝗁 𝗄𝖺𝗇𝗇𝗌𝗍 𝖽𝗎 𝗎𝗇𝗌 𝗂𝗇 #𝗏𝗈𝗋𝗌𝗍𝖾𝗅𝗅𝗎𝗇𝗀 𝖾𝗍𝗐𝖺𝗌 𝗎̈𝖻𝖾𝗋 𝖽𝗂𝖼𝗁 𝖾𝗋𝗓𝖺̈𝗁𝗅𝖾𝗇 𝗎𝗇𝖽 𝖽𝗂𝗋𝖾𝗄𝗍 𝗆𝗂𝗍 𝖽𝖾𝗋 𝖼𝗈𝗆𝗆𝗎𝗇𝗂𝗍𝗒 𝗌𝖼𝗁𝗋𝖾𝗂𝖻𝖾𝗇. \n" 
+                f"W𝗂𝗋 𝗐ü𝗇𝗌𝖼𝗁𝖾𝗇 𝖽𝗂𝗋 𝗏𝗂𝖾𝗅 s𝗉𝖺ß, 𝗏𝗂𝖾𝗅𝖾 𝗇𝖾𝗎𝖾 𝖻𝖾𝗄𝖺𝗇𝗇𝗍𝗌𝖼𝗁𝖺𝖿𝗍𝖾𝗇 𝗎𝗇𝖽 𝖾𝗂𝗇𝖾 𝗍𝗈𝗅𝗅𝖾 𝗓𝖾𝗂𝗍 𝖻𝖾𝗂 𝗎𝗇𝗌."
             ),
             color=discord.Color.green(),
         )
@@ -113,3 +109,4 @@ class Onboarding(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Onboarding(bot))
+    
