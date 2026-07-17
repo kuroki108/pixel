@@ -1,11 +1,7 @@
-
 import discord
 from discord.ext import commands
+from bot import ADMIN_ROLES
 
-
-# Hier die ID des Channels eintragen, in dem gezaehlt werden soll.
-# Rechtsklick auf den Channel in Discord -> "ID kopieren"
-# (Entwicklermodus muss dafuer in den Discord-Einstellungen aktiviert sein).
 COUNTING_CHANNEL_ID = 1525603629548179608
 
 
@@ -57,7 +53,31 @@ class Counting(commands.Cog):
         self.last_user_id = message.author.id
         await message.add_reaction("✅")
 
+    @commands.command(name="set")
+    @commands.has_any_role(*ADMIN_ROLES)
+    async def set_number(self, ctx: commands.Context, number: int):
+        """Setzt den aktuellen Zählerstand (die nächste erwartete Zahl ist number+1)."""
+        if number < 0:
+            await ctx.send("Die Zahl darf nicht negativ sein.")
+            return
+
+        self.count = number
+        self.last_user_id = None  # Reset, damit niemand fälschlich als "doppelt dran" gilt
+
+        await ctx.send(
+            f"Zählerstand wurde auf **{number}** gesetzt. "
+            f"Nächste erwartete Zahl: **{number + 1}**"
+        )
+
+    @set_number.error
+    async def set_number_error(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("Dafür brauchst du Administrator-Rechte.")
+        elif isinstance(error, commands.BadArgument):
+            await ctx.send("Bitte eine gültige Zahl angeben, z. B. `!set 41`.")
+        else:
+            raise error
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Counting(bot))
-
