@@ -1,4 +1,4 @@
-#Atlas System
+#Pixel System
 
 import discord
 import os

@@ -53,6 +53,38 @@ class Counting(commands.Cog):
         self.last_user_id = message.author.id
         await message.add_reaction("✅")
 
+        if self.count == 100:
+            await message.channel.send(
+                f"🎉 Herzlichen Glückwunsch {message.author.mention}! "
+                f"Du hast die Zahl **100** erreicht! 🎉"
+            )
+
+        
+        if self.count == 200:
+            await message.channel.send(
+                f"🎉 Unglaublich {message.author.mention}! "
+                f"Du hast die Zahl **200** erreicht! 🎉"
+            )
+
+        if self.count == 300:
+            await message.channel.send(
+                f"🎉 Fantastisch {message.author.mention}! "
+                f"Du hast die Zahl **300** erreicht! 🎉"
+            )
+
+        if self.count == 500:
+            await message.channel.send(
+                f"🎉 Wie krass seit ihr bittee! {message.author.mention}! "
+                f"Du hast die Zahl **500** erreicht! 🎉"
+            )
+
+        if self.count == 1000:
+            await message.channel.send(
+                f"🎉 Okay, jetzt fehlen mir echt die worte... {message.author.mention}! "
+                f"Du hast die Zahl **1000** erreicht! 🎉"
+            )
+
+
     @commands.command(name="set")
     @commands.has_any_role(*ADMIN_ROLES)
     async def set_number(self, ctx: commands.Context, number: int):
