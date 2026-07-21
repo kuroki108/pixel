@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from bot import ADMIN_ROLES
 
-COUNTING_CHANNEL_ID = 1525603630256750792
+COUNTING_CHANNEL_ID = 1525603629548179608
 
 ACHIEVEMENTS = {
     42: (
