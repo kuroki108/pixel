@@ -17,6 +17,10 @@ ACHIEVEMENTS = {
         "🎉 Glückwunsch {user}! Du hast das Achievement (**Hunderter**) freigeschalten! 🎉",
         "Erreiche die erste dreistellige Zahl. 💯",
     ),
+    108: (
+        "🎉 Glückwunsch {user}! Du hast das Achievement (**Barian**) freigeschalten! 🎉",
+        "XYZ Summon: Chaos Number 108:",
+    ),
     123: (
         "🎉 Glückwunsch {user}! Du hast das Achievement (**Los geht's**) freigeschalten! 🎉",
         "Eine einfache Zahlenfolge.",

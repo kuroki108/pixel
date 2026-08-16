@@ -1,6 +1,25 @@
 # Selfrole System / Dropdown Menu
 import discord
 
+# -------------------------------------------------------
+# Embed Constants
+# -------------------------------------------------------
+EMBED_IMAGE_URL = "attachment://selfroles-bg.gif"
+EMBED_COLOR = discord.Color.purple()
+EMBED_TITLE = "𝐒𝐄𝐋𝐅-𝐑𝐎𝐋𝐄𝐒 🌂"
+EMBED_DESC = (
+    "H𝗂𝖾𝗋 𝗄𝖆𝗇𝗇𝗌𝗍 𝖽𝗎 𝖽𝗂𝗋 𝗆𝗂𝗍 𝖾𝗂𝗇𝖾𝗆 𝗄𝗅𝗂𝖈𝗄 𝖽𝖾𝗂𝗇𝖊 𝗋𝗈𝗅𝗅𝖊𝗇 𝖺𝗎𝗌𝗐ä𝗁𝗅𝖊𝗇!\n"
+    "Wä𝗁𝗅𝖊 𝗓.𝖇. 𝖽𝖾𝗂𝗇 𝖺𝗅𝗍𝖊𝗋, 𝖽𝖊𝗂𝗇𝖆 𝗅𝖎𝖊𝖇𝖑𝖎𝖓𝖌𝖘𝖘𝖕𝖎𝖊𝖑𝖊 𝗈𝖉𝖊𝗋 𝗉𝖎𝖓𝖌-𝗋𝗈𝖑𝖑𝖊𝗇, 𝖉𝖆𝖔𝖎𝖎 𝖺𝖌𝖉𝖊𝖗𝖊 𝖈𝖙𝖙𝖌𝖑𝖎𝖊𝖉𝖊𝖗 𝖌𝖘𝖊𝖘𝖍 𝖘𝖈𝖜𝖉𝖔, 𝖘𝖆𝖘 𝖙𝖓 𝖘𝖎𝖘 𝖕𝖆𝖘𝖊𝖙.\n"
+    "K𝖾𝗂𝗇𝖊 𝗌𝗈𝗋𝗀𝖊, 𝖽𝗎 𝗄𝖆𝗇𝗇𝖘𝖙 𝖽𝖾𝗂𝗇𝖆 𝗋𝗈𝖑𝖑𝖊𝗇 𝖏𝖊𝖉𝖊𝗋𝖖𝖒𝖎𝖑 ä𝖓𝖉𝖎𝖘𝖘 𝖔𝖉𝖕𝖌 𝖊𝖓𝖙𝖋𝖜𝖜𝖎𝗂𝖓."
+)
+
+
+def build_selfroles_embed() -> discord.Embed:
+    """Builds the selfroles embed."""
+    embed = discord.Embed(title=EMBED_TITLE, description=EMBED_DESC, color=EMBED_COLOR)
+    embed.set_image(url=EMBED_IMAGE_URL)
+    return embed
+
 
 class RoleSelect(discord.ui.Select):
 
@@ -80,9 +99,9 @@ class GenderRoles(RoleSelect):
             min_values=0,
             max_values=1,
             options=[
-                discord.SelectOption(label="Männlich", value="1525603628298141787"),
-                discord.SelectOption(label="Weiblich", value="1525603628298141786"),
-                discord.SelectOption(label="Divers", value="1525603628285431917"),
+                discord.SelectOption(label="Männlich",          value="1525603628298141787"),
+                discord.SelectOption(label="Weiblich",          value="1525603628298141786"),
+                discord.SelectOption(label="Divers",            value="1525603628285431917"),
             ],
         )
 
@@ -95,12 +114,12 @@ class AgeRoles(RoleSelect):
             min_values=0,
             max_values=1,
             options=[
-                discord.SelectOption(label="16 bis 17", value="1525603628285431915"),
-                discord.SelectOption(label="18 bis 20", value="1525603628285431914"),
-                discord.SelectOption(label="21 bis 25", value="1525603628285431913"),
-                discord.SelectOption(label="26 bis 30", value="1525603628285431912"),
-                discord.SelectOption(label="31 bis 35", value="1525603628285431911"),
-                discord.SelectOption(label="35 + (Unc)", value="1525603628285431910"),
+                discord.SelectOption(label="16 bis 17",          value="1525603628285431915"),
+                discord.SelectOption(label="18 bis 20",          value="1525603628285431914"),
+                discord.SelectOption(label="21 bis 25",          value="1525603628285431913"),
+                discord.SelectOption(label="26 bis 30",          value="1525603628285431912"),
+                discord.SelectOption(label="31 bis 35",          value="1525603628285431911"),
+                discord.SelectOption(label="35 + (Unc)",         value="1525603628285431910"),
             ],
         )
 
@@ -114,24 +133,24 @@ class StateRoles(RoleSelect):
             min_values=0,
             max_values=1,
             options=[
-                discord.SelectOption(label="Baden-Württemberg", value="1525603628285431908"),
-                discord.SelectOption(label="Bayern", value="1525603628277039193"),
-                discord.SelectOption(label="Berlin", value="1525603628277039192"),
-                discord.SelectOption(label="Brandenburg", value="1525603628277039191"),
-                discord.SelectOption(label="Bremen", value="1525603628277039190"),
-                discord.SelectOption(label="Hamburg", value="1525603628277039189"),
-                discord.SelectOption(label="Hessen", value="1525603628277039188"),
-                discord.SelectOption(label="Mecklenburg-Vorpommern", value="1525603628277039187"),
-                discord.SelectOption(label="Niedersachsen", value="1525603628277039186"),
-                discord.SelectOption(label="Nordrhein-Westfalen", value="1525603628277039185"),
-                discord.SelectOption(label="Rheinland-Pfalz", value="1525603628277039184"),
-                discord.SelectOption(label="Saarland", value="1525603628264722554"),
-                discord.SelectOption(label="Sachsen", value="1525603628264722553"),
-                discord.SelectOption(label="Sachsen-Anhalt", value="1525603628264722552"),
-                discord.SelectOption(label="Schleswig-Holstein", value="1525603628264722551"),
-                discord.SelectOption(label="Thüringen", value="1525603628264722550"),
-                discord.SelectOption(label="Österreich", value="1525603628264722549"),
-                discord.SelectOption(label="Schweiz", value="1525603628264722548"),
+                discord.SelectOption(label="Baden-Württemberg",          value="1525603628285431908"),
+                discord.SelectOption(label="Bayern",                     value="1525603628277039193"),
+                discord.SelectOption(label="Berlin",                     value="1525603628277039192"),
+                discord.SelectOption(label="Brandenburg",                value="1525603628277039191"),
+                discord.SelectOption(label="Bremen",                     value="1525603628277039190"),
+                discord.SelectOption(label="Hamburg",                    value="1525603628277039189"),
+                discord.SelectOption(label="Hessen",                     value="1525603628277039188"),
+                discord.SelectOption(label="Mecklenburg-Vorpommern",     value="1525603628277039187"),
+                discord.SelectOption(label="Niedersachsen",              value="1525603628277039186"),
+                discord.SelectOption(label="Nordrhein-Westfalen",        value="1525603628277039185"),
+                discord.SelectOption(label="Rheinland-Pfalz",            value="1525603628277039184"),
+                discord.SelectOption(label="Saarland",                   value="1525603628264722554"),
+                discord.SelectOption(label="Sachsen",                   value="1525603628264722553"),
+                discord.SelectOption(label="Sachsen-Anhalt",            value="1525603628264722552"),
+                discord.SelectOption(label="Schleswig-Holstein",        value="1525603628264722551"),
+                discord.SelectOption(label="Thüringen",                 value="1525603628264722550"),
+                discord.SelectOption(label="Österreich",                value="1525603628264722549"),
+                discord.SelectOption(label="Schweiz",                   value="1525603628264722548"),
             ],
         )
 
@@ -144,9 +163,9 @@ class DM_StatusRoles(RoleSelect):
             min_values=0,
             max_values=1,
             options=[
-                discord.SelectOption(label="Dm's -offen", value="1525603628264722546"),
-                discord.SelectOption(label="Dm's -anfrage", value="1525603628264722545"),
-                discord.SelectOption(label="Dm's -close", value="1525603628256329918"),
+                discord.SelectOption(label="Dm's -offen",               value="1525603628264722546"),
+                discord.SelectOption(label="Dm's -anfrage",             value="1525603628264722545"),
+                discord.SelectOption(label="Dm's -close",               value="1525603628256329918"),
             ],
         )
 
@@ -159,15 +178,14 @@ class PingRoles(RoleSelect):
             custom_id="select_ping",
             placeholder="Ping",
             min_values=0,
-            max_values=7,
+            max_values=6,
             options=[
-                discord.SelectOption(label="Bump", value="1525603628256329916"),
-                discord.SelectOption(label="Umfragen", value="1525603628256329915"),
-                discord.SelectOption(label="Neuigkeiten/Ankündigungen", value="1525603628256329914"),
-                discord.SelectOption(label="Giveaways", value="1525603628256329913"),
-                discord.SelectOption(label="Events", value="1525603628256329912"),
-                discord.SelectOption(label="Minigames", value="1525603628256329911"),
-                discord.SelectOption(label="Dead Chat", value="1525603628256329910"),
+                discord.SelectOption(label="Bump",                              value="1525603628256329916"),
+                discord.SelectOption(label="Umfragen",                          value="1525603628256329915"),
+                discord.SelectOption(label="Neuigkeiten/Ankündigungen",         value="1525603628256329914"),
+                discord.SelectOption(label="Giveaways",                         value="1525603628256329913"),
+                discord.SelectOption(label="Events",                            value="1525603628256329912"),
+                discord.SelectOption(label="Dead Chat",                         value="1525603628256329910"),
             ],
         )
 
@@ -182,24 +200,24 @@ class GamesRoles(RoleSelect):
             min_values=0,
             max_values=18,
             options=[
-                discord.SelectOption(label="Spielersuche", value="1525603628243484843"),
-                discord.SelectOption(label="Minecraft", value="1525603628243484842"),
-                discord.SelectOption(label="Dead by Daylight", value="1525603628243484841"),
-                discord.SelectOption(label="Valorant", value="1525603628243484840"),
-                discord.SelectOption(label="Phasmophobia", value="1525603628243484839"),
-                discord.SelectOption(label="Fortnite", value="1525603628243484838"),
-                discord.SelectOption(label="Rocket League", value="1525603628243484837"),
-                discord.SelectOption(label="Genshin Impact", value="1525603628243484836"),
-                discord.SelectOption(label="Where the Winds Meet", value="1525603628243484835"),
-                discord.SelectOption(label="Once Human", value="1525603628243484834"),
-                discord.SelectOption(label="Yu-Gi-Oh!", value="1525603628235362363"),
-                discord.SelectOption(label="Overwatch", value="1525603628235362362"),
-                discord.SelectOption(label="COD", value="1525603628235362361"),
-                discord.SelectOption(label="Roblox", value="1525603628235362360"),
-                discord.SelectOption(label="League of Legends", value="1525603628235362359"),
-                discord.SelectOption(label="Helldivers", value="1525603628235362358"),
-                discord.SelectOption(label="Warframe", value="1525603628235362357"),
-                discord.SelectOption(label="Repo", value="1525603628235362356"),
+                discord.SelectOption(label="Spielersuche",                  value="1525603628243484843"),
+                discord.SelectOption(label="Minecraft",                     value="1525603628243484842"),
+                discord.SelectOption(label="Dead by Daylight",              value="1525603628243484841"),
+                discord.SelectOption(label="Valorant",                      value="1525603628243484840"),
+                discord.SelectOption(label="Phasmophobia",                  value="1525603628243484839"),
+                discord.SelectOption(label="Fortnite",                      value="1525603628243484838"),
+                discord.SelectOption(label="Rocket League",                 value="1525603628243484837"),
+                discord.SelectOption(label="Genshin Impact",                value="1525603628243484836"),
+                discord.SelectOption(label="Where the Winds Meet",          value="1525603628243484835"),
+                discord.SelectOption(label="Once Human",                    value="1525603628243484834"),
+                discord.SelectOption(label="Yu-Gi-Oh!",                     value="1525603628235362363"),
+                discord.SelectOption(label="Overwatch",                     value="1525603628235362362"),
+                discord.SelectOption(label="COD",                           value="1525603628235362361"),
+                discord.SelectOption(label="Roblox",                        value="1525603628235362360"),
+                discord.SelectOption(label="League of Legends",             value="1525603628235362359"),
+                discord.SelectOption(label="Helldivers",                    value="1525603628235362358"),
+                discord.SelectOption(label="Warframe",                      value="1525603628235362357"),
+                discord.SelectOption(label="Repo",                          value="1525603628235362356"),
             ],
         )
 

@@ -1,6 +1,23 @@
 # Selfrole System / Dropdown Menu
 import discord
 
+# -------------------------------------------------------
+# Embed Constants
+# -------------------------------------------------------
+EMBED_IMAGE_URL = "attachment://cute-roles.gif"
+EMBED_COLOR = discord.Color.purple()
+EMBED_TITLE = "⋆��� 𝗌𝖾𝗅𝖋 𝖼𝗎𝗍𝗂𝖊 𝗋𝗈𝗅𝖊𝖘ˎˊ˗⭑.ᐟ"
+EMBED_DESC = ("𝗐ä𝗁𝗅𝖊 𝗁𝗂𝖊𝗋 𝗋𝗈𝗅𝖑𝖊𝗇, 𝖉𝖎𝖊 𝖆𝖆 𝖘𝖆𝖘𝖒𝖊𝖓 𝖙𝖔 𝖽𝖎𝖗 𝖔𝖜𝖎𝖙𝖖𝖊𝖜!\n" 
+                    "𝗈𝖇 𝖉𝗎 𝖙𝖎𝖛𝖔 𝖘𝗅𝖎𝖊𝖆𝖞𝖍𝖎𝖆𝖆, 𝖙𝖎𝖓𝖈 𝖘𝖚𝖎𝖘𝖘𝖆𝖚𝖌, 𝖛𝖎𝖎𝖚 𝖙𝖎𝖘𝖊𝖘𝖉𝖑𝖎𝖘𝖘𝖎𝖔𝖛 𝖔𝖍𝖎𝖎𝖚𝖘 𝖊𝖎𝖙𝖠 𝖌𝖔𝖆𝖎𝖎 𝖑𝖎𝖉𝖙, 𝖙𝖘 𝖆𝖔𝖐𝖍𝖉𝖘𝖈𝖍𝖈 𝖍𝖔𝖐𝖑𝖎𝖔𝖍𝖑𝖘 𝖘𝖍𝖎𝖆𝖒𝖎𝖎 𝖘𝖈𝖓𝖈𝖊𝖓, 𝖈𝖍𝖘𝖘𝖘 𝖓𝖝𝖕𝖔𝖍𝖞𝖏𝖔𝖗𝖆𝖎𝖙𝖘𝖔𝖓𝖘. "
+                    "𝖘𝖚𝖙𝖍 𝖉𝖎𝖗 𝖊𝖎𝖈𝖋𝖆𝖈𝖉 𝖉𝖎𝖆 𝗋𝗈𝗅𝖊𝖘 𝖆𝖚𝖙, 𝖉𝖎𝖊 𝖉𝖎 𝖩𝖉𝖙𝖎𝖎𝖉𝖎𝖕𝖒𝖎 𝖈𝖇𝖉𝖘𝖔𝖎𝖭𝖘𝖔𝖙𝖎 𝖕𝖘𝖘𝖕𝖔 💤")
+
+
+def build_cute_roles_embed() -> discord.Embed:
+    """Builds the cute roles embed."""
+    embed = discord.Embed(title=EMBED_TITLE, description=EMBED_DESC, color=EMBED_COLOR)
+    embed.set_image(url=EMBED_IMAGE_URL)
+    return embed
+
 
 def _resolve_role(guild: discord.Guild, value: str):
     try:
