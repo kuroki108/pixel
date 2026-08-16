@@ -176,10 +176,10 @@ class WelcomeImageCog(commands.Cog):
                     continue
             return ImageFont.load_default()
 
-        font_title = load_font(60)
-        font_welcome = load_font(38)
-        font_subtitle = load_font(30)
-        font_text = load_font(30)
+        font_title = load_font(120)
+        font_welcome = load_font(78)
+        font_subtitle = load_font(60)
+        font_text = load_font(60)
 
         text_x = avatar_x + border_size + 60
 
