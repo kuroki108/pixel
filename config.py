@@ -1,0 +1,39 @@
+import os
+
+
+BOT_TOKEN: str = os.environ.get("DISCORD_TOKEN", "")
+
+GUILD_ID: int = 1525603628235362354  # ID deines Servers "zen arcade"
+
+SUPPORT_CATEGORY_ID: int = 1525603628977619062       # Kategorie für Support-Tickets
+APPLICATION_CATEGORY_ID: int = 1525603628977619062   # Kategorie für Bewerbungs-Tickets
+
+SUPPORT_STAFF_ROLE_ID: int = 1525603628339957943
+APPLICATION_STAFF_ROLE_ID: int = 1525603628339957943
+
+ADMIN_ROLE_ID: int = 1525603628339957945
+
+TRANSCRIPT_LOG_CHANNEL_ID: int = 1525603630256750789
+
+MAX_OPEN_SUPPORT_TICKETS_PER_USER: int = 3
+
+MAX_OPEN_APPLICATION_TICKETS_PER_USER: int = 1
+
+# Präfix für automatisch generierte Kanalnamen
+SUPPORT_CHANNEL_PREFIX: str = "support"
+APPLICATION_CHANNEL_PREFIX: str = "bewerbung"
+
+# Emojis für Panel-Buttons (frei anpassbar)
+EMOJI_OPEN_TICKET = "🎫"
+EMOJI_CLAIM = "🙋"
+EMOJI_CLOSE = "🔒"
+EMOJI_DELETE = "🗑️"
+EMOJI_TRANSCRIPT = "📄"
+EMOJI_ADD_USER = "➕"
+EMOJI_REMOVE_USER = "➖"
+EMOJI_SUPPORTER = "🛠️"
+EMOJI_DESIGNER = "🎨"
+EMOJI_EVENTMANAGER = "🎉"
+
+# Serverfarbe für Embeds (Hex als int, z. B. 0x5865F2)
+EMBED_COLOR: int = 0x2B2D31

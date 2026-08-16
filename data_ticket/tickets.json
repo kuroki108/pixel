@@ -1,0 +1,30 @@
+{
+  "tickets": {
+    "1527249227636543598": {
+      "channel_id": 1527249227636543598,
+      "type": "support",
+      "opener_id": 1220043790228787230,
+      "created_at": 1784194990.8335757,
+      "claimed_by": 1220043790228787230,
+      "closed": false,
+      "added_users": [
+        1487876105573761048
+      ],
+      "answers": {}
+    },
+    "1527249298574540862": {
+      "channel_id": 1527249298574540862,
+      "type": "support",
+      "opener_id": 1220043790228787230,
+      "created_at": 1784195008.0226388,
+      "claimed_by": null,
+      "closed": false,
+      "added_users": [],
+      "answers": {}
+    }
+  },
+  "counters": {
+    "support": 5,
+    "application": 3
+  }
+}
