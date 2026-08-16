@@ -17,6 +17,7 @@ ROLE_IDS: list[int] = [
     1525603628298141788, #About me
     1525603628256329917, #Pings 
     1525603628256329909, #Gaming
+    1527265648764522517, #Asthatics
     1525603628298141789  #Member
 ]
 
@@ -78,6 +79,12 @@ class WelcomeImageCog(commands.Cog):
         self.bot = bot
         self.base_dir = Path(__file__).resolve().parent.parent
         self.asset_dir = self.base_dir / "assets"
+
+    def get_welcome_channel(self, guild: discord.Guild) -> discord.abc.GuildChannel | None:
+        channel = guild.get_channel(WELCOME_CHANNEL_ID)
+        if channel is not None:
+            return channel
+        return guild.system_channel
 
     def create_welcome_image(
         self,
@@ -180,7 +187,7 @@ class WelcomeImageCog(commands.Cog):
         draw.text((text_x, avatar_y + 80), "HERZLICH WILLKOMMEN", font=font_welcome, fill=(255, 0, 255))
         draw.text((text_x, avatar_y + 130), "Bei Zen Arcade", font=font_subtitle, fill=(0, 255, 255))
 
-        greeting = f"Wir freuen uns, dich hier zu haben!\n{username}"
+        greeting = f"Wir freuen uns, dich hier zu haben!\n"
         draw.text((text_x, avatar_y + 190), greeting, font=font_text, fill=(230, 230, 230))
 
         buffer = io.BytesIO()
@@ -193,16 +200,16 @@ class WelcomeImageCog(commands.Cog):
         if member.bot:
             return
 
-        channel = member.guild.system_channel
+        channel = self.get_welcome_channel(member.guild)
         if not channel:
+            logger.warning("Kein Willkommenskanal für %s gefunden (system_channel oder %s).", member, WELCOME_CHANNEL_ID)
             return
 
         avatar_bytes = await member.display_avatar.replace(size=256, format="png").read()
         image_buffer = self.create_welcome_image(avatar_bytes, member.display_name)
         file = discord.File(fp=image_buffer, filename="welcome.png")
-        await channel.send(content=f"Willkommen im Zen Arcade, {member.mention}!", file=file)
 
-
+        await channel.send(file=file)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Onboarding(bot))
