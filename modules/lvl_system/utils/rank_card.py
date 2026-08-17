@@ -1,11 +1,3 @@
-"""
-Generiert eine Rank-Card als PNG (im Arbeitsspeicher, kein Disk-I/O nötig).
-
-Stil: dunkler Hintergrund + Neon-Akzente (Cyan/Magenta), passend zu einem
-Anime-/Arcade-Server-Theme. Reine PIL-Zeichnung, keine externen Assets
-außer den mitgelieferten DejaVu-Fonts nötig.
-"""
-
 from __future__ import annotations
 
 import io

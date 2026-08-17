@@ -1,8 +1,3 @@
-"""
-Leveling-Cog: Text-XP, Voice-XP, Rollenbelohnungen, Rank-Card, Leaderboard
-und Admin-Konfiguration – der Kern des Bots.
-"""
-
 from __future__ import annotations
 
 import logging

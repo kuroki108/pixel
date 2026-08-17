@@ -1,7 +1,3 @@
-"""Delete duplicate slash-commands (same name) globally and for DEV_GUILD_ID.
-
-Requires `DISCORD_TOKEN` env var to be set.
-"""
 import os
 import sys
 import requests

@@ -1,14 +1,3 @@
-"""
-XP-Kurve für das Leveling-System.
-
-Formel (angelehnt an das gängige MEE6/Arcane-Muster, leicht vereinfacht):
-    xp_fuer_naechstes_level(level) = 5 * level^2 + 50 * level + 100
-
-Level 0 -> 1 braucht 100 XP, Level 1 -> 2 braucht 155 XP, usw.
-Das sorgt für eine sanft ansteigende Kurve, die frühe Level schnell,
-hohe Level spürbar langsamer macht.
-"""
-
 from __future__ import annotations
 
 

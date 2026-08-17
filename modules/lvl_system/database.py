@@ -1,11 +1,3 @@
-"""
-SQLite-Datenbankschicht für den Leveling-Bot.
-
-Alle Zugriffe laufen asynchron über aiosqlite. Es wird EINE Connection
-für die Laufzeit des Bots offen gehalten (siehe bot.py), WAL-Mode sorgt
-für sichere nebenläufige Schreibzugriffe.
-"""
-
 from __future__ import annotations
 
 import time
