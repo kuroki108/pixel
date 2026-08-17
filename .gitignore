@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 modules/lvl_system/data/
+CLAUDE.md
+/.claude
