@@ -1,10 +1,3 @@
-"""
-Slash-Commands, mit denen ein Admin die beiden Panels (Support und
-Bewerbung) in einem beliebigen Kanal posten kann. Die Panels selbst
-sind persistente Views (siehe ui/views.py) und funktionieren dauerhaft,
-auch nach einem Bot-Neustart.
-"""
-
 from __future__ import annotations
 
 import discord
@@ -12,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import config
-from ticket_system.views import SupportPanelView, ApplicationPanelView
+from modules.ticket_system.views import SupportPanelView, ApplicationPanelView
 
 
 class PanelsCog(commands.Cog):

@@ -1,5 +1,3 @@
-"""Hilfsfunktionen, um zu prüfen ob ein Mitglied Team-/Admin-Rechte hat."""
-
 from __future__ import annotations
 
 import discord

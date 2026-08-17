@@ -1,9 +1,3 @@
-"""
-Erstellt ein hübsches, in sich geschlossenes HTML-Transcript des
-Nachrichtenverlaufs eines Ticket-Kanals (im Stil des Discord-Dark-Themes).
-Keine externen Abhängigkeiten nötig - reines Python + f-Strings.
-"""
-
 from __future__ import annotations
 
 import html

@@ -1,22 +1,13 @@
-"""
-Alle Discord-UI-Views des Ticketsystems.
-
-Die Panel-Views (SupportPanelView, ApplicationPanelView) und die
-TicketControlView sind "persistent" (timeout=None + feste custom_id
-Strings), damit sie auch nach einem Bot-Neustart weiter funktionieren.
-Dafür müssen sie einmalig in main.py per bot.add_view(...) registriert
-werden.
-"""
-
 from __future__ import annotations
 
 import discord
 
 import config
-from ticket_system import permissions, ticket_manager
-from ticket_system.storage import store
-from ticket_system.ticket_manager import TicketLimitReached
-from ticket_system.modals import (
+from modules.ticket_system import permissions
+from modules.ticket_system import ticket_manager
+from modules.ticket_system.storage import store
+from modules.ticket_system.ticket_manager import TicketLimitReached
+from modules.ticket_system.modals import (
     SupporterApplicationModal,
     DesignerApplicationModal,
     EventManagerApplicationModal,

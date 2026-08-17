@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import discord
 import io
@@ -133,39 +134,19 @@ class WelcomeImageCog(commands.Cog):
         avatar_y = (bg_height - border_size) // 2
         background.paste(avatar_with_border, (avatar_x, avatar_y), avatar_with_border)
 
+        # Reihenfolge: expliziter Pfad -> mitgelieferte DejaVu-Fonts (immer im Repo
+        # vorhanden, funktionieren plattformunabhaengig) -> gaengige System-Fonts als
+        # letzter Versuch -> PIL-Default-Bitmap-Font (siehe load_font()).
+        shared_font_dir = self.base_dir / "assets" / "fonts"
         font_candidates = []
         if font_path and os.path.exists(font_path):
             font_candidates.append(font_path)
 
         font_candidates.extend([
-            str(self.base_dir / "NotoSansJP-Regular.otf"),
-            str(self.base_dir / "NotoSansJP-Bold.otf"),
-            str(self.base_dir / "YuGothic.ttf"),
-            str(self.base_dir / "Meiryo.ttc"),
-            str(self.base_dir / "meiryo.ttc"),
-            str(self.base_dir / "seguiemj.ttf"),
-            str(self.base_dir / "Segoe UI Symbol.ttf"),
-            str(self.base_dir / "arial.ttf"),
-            str(self.asset_dir / "arial.ttf"),
-            r"C:\Windows\Fonts\NotoSansJP-Regular.otf",
-            r"C:\Windows\Fonts\NotoSansJP-Bold.otf",
-            r"C:\Windows\Fonts\YuGothic.ttf",
-            r"C:\Windows\Fonts\meiryo.ttc",
-            r"C:\Windows\Fonts\seguiemj.ttf",
+            str(shared_font_dir / "DejaVuSans-Bold.ttf"),
+            str(shared_font_dir / "DejaVuSans.ttf"),
             r"C:\Windows\Fonts\arial.ttf",
-            r"C:\Windows\Fonts\arialuni.ttf",
-            r"C:\Windows\Fonts\CambriaMath.ttf",
-            r"C:\Windows\Fonts\seguisym.ttf",
-            r"C:\Windows\Fonts\NotoSansSymbols2-Regular.ttf",
-            r"C:\Windows\Fonts\NotoSansMath-Regular.ttf",
-            r"C:\Windows\Fonts\calibri.ttf",
-            r"C:\Windows\Fonts\consola.ttf",
-            r"C:\Windows\Fonts\verdana.ttf",
-            r"C:\Windows\Fonts\msgothic.ttc",
-            r"C:\Windows\Fonts\msyh.ttc",
-            r"C:\Windows\Fonts\simhei.ttf",
-            r"C:\Windows\Fonts\simsun.ttf",
-            r"C:\Windows\Fonts\malgun.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         ])
 
         def load_font(size: int):
@@ -206,7 +187,7 @@ class WelcomeImageCog(commands.Cog):
             return
 
         avatar_bytes = await member.display_avatar.replace(size=256, format="png").read()
-        image_buffer = self.create_welcome_image(avatar_bytes, member.display_name)
+        image_buffer = await asyncio.to_thread(self.create_welcome_image, avatar_bytes, member.display_name)
         file = discord.File(fp=image_buffer, filename="welcome.png")
 
         await channel.send(file=file)

@@ -14,8 +14,8 @@ from typing import Optional
 import discord
 
 import config
-from ticket_system.storage import TicketData, store
-from ticket_system.transcript import build_transcript
+from modules.ticket_system.storage import TicketData, store
+from modules.ticket_system.transcript import build_transcript
 
 # Menschlich lesbare Labels für die Ticket-Typen (u. a. für Embeds/Kanalnamen)
 TICKET_TYPE_LABELS = {
@@ -57,15 +57,19 @@ async def create_ticket(
 ) -> discord.TextChannel:
     """Erstellt einen neuen Ticket-Kanal inkl. Berechtigungen, Speicherung und Begrüßungsnachricht."""
 
-    # Limit prüfen
+    # Limit pruefen + Zaehler ziehen: atomar in einem Lock, damit zwei gleichzeitige
+    # Ticket-Erstellungen desselben Nutzers das Limit nicht umgehen koennen.
     prefix_for_limit = "application" if ticket_type.startswith("application") else "support"
-    existing = await store.open_tickets_by_user(member.id, ticket_type if prefix_for_limit == "application" else "support")
     max_allowed = (
         config.MAX_OPEN_APPLICATION_TICKETS_PER_USER
         if prefix_for_limit == "application"
         else config.MAX_OPEN_SUPPORT_TICKETS_PER_USER
     )
-    if len(existing) >= max_allowed:
+    counter_key = "application" if prefix_for_limit == "application" else "support"
+    number = await store.reserve_ticket_slot(
+        member.id, ticket_type if prefix_for_limit == "application" else "support", max_allowed, counter_key
+    )
+    if number is None:
         raise TicketLimitReached()
 
     category_id, channel_prefix = _category_and_prefix(ticket_type)
@@ -74,8 +78,6 @@ async def create_ticket(
     staff_role = guild.get_role(staff_role_id) if staff_role_id else None
     admin_role = guild.get_role(config.ADMIN_ROLE_ID) if config.ADMIN_ROLE_ID else None
 
-    counter_key = "application" if prefix_for_limit == "application" else "support"
-    number = await store.next_counter(counter_key)
     channel_name = f"{channel_prefix}-{number:04d}-{_sanitize(member.name)}"
 
     overwrites: dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {

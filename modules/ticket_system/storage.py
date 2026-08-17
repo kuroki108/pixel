@@ -1,14 +1,3 @@
-"""
-Einfache, dateibasierte Speicherung des Ticket-Zustands.
-
-Statt einer Datenbank verwenden wir eine einzelne JSON-Datei
-(data/tickets.json). Ein asyncio.Lock verhindert, dass zwei
-gleichzeitige Schreibzugriffe sich gegenseitig überschreiben.
-Geschrieben wird atomar (erst in eine .tmp-Datei, dann umbenennen),
-damit die JSON-Datei bei einem Absturz mitten im Schreibvorgang nicht
-korrupt wird.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -18,7 +7,7 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 DATA_FILE = os.path.join(DATA_DIR, "tickets.json")
 
 _lock = asyncio.Lock()
@@ -109,48 +98,74 @@ class TicketData:
         )
 
 
+def _open_tickets_for(data: dict[str, Any], user_id: int, type_prefix: str) -> list[TicketData]:
+    result = []
+    for raw in data["tickets"].values():
+        opener_id = raw.get("opener_id")
+        ticket_type = raw.get("type")
+        if opener_id is None or ticket_type is None:
+            continue  # unvollstaendiger/beschaedigter Eintrag -> ignorieren statt crashen
+        if opener_id == user_id and ticket_type.startswith(type_prefix) and not raw.get("closed", False):
+            result.append(TicketData.from_dict(raw))
+    return result
+
+
 class TicketStore:
     """Async-sichere Schnittstelle auf die JSON-Datei."""
 
     async def get_ticket(self, channel_id: int) -> Optional[TicketData]:
         async with _lock:
-            data = _read_raw()
+            data = await asyncio.to_thread(_read_raw)
             raw = data["tickets"].get(str(channel_id))
             return TicketData.from_dict(raw) if raw else None
 
     async def save_ticket(self, ticket: TicketData) -> None:
         async with _lock:
-            data = _read_raw()
+            data = await asyncio.to_thread(_read_raw)
             data["tickets"][str(ticket.channel_id)] = ticket.to_dict()
-            _write_raw(data)
+            await asyncio.to_thread(_write_raw, data)
 
     async def delete_ticket(self, channel_id: int) -> None:
         async with _lock:
-            data = _read_raw()
+            data = await asyncio.to_thread(_read_raw)
             data["tickets"].pop(str(channel_id), None)
-            _write_raw(data)
+            await asyncio.to_thread(_write_raw, data)
 
     async def open_tickets_by_user(self, user_id: int, type_prefix: str) -> list[TicketData]:
         """Alle offenen Tickets eines Nutzers, deren type mit type_prefix beginnt."""
         async with _lock:
-            data = _read_raw()
-            result = []
-            for raw in data["tickets"].values():
-                if raw["opener_id"] == user_id and raw["type"].startswith(type_prefix) and not raw.get("closed", False):
-                    result.append(TicketData.from_dict(raw))
-            return result
+            data = await asyncio.to_thread(_read_raw)
+            return _open_tickets_for(data, user_id, type_prefix)
+
+    async def reserve_ticket_slot(
+        self, user_id: int, type_prefix: str, max_allowed: int, counter_key: str
+    ) -> Optional[int]:
+        """Prueft das Ticket-Limit und zieht bei freiem Slot atomar einen neuen Zaehlerwert.
+
+        Haelt den Lock ueber Pruefung + Inkrement, damit zwei gleichzeitige
+        Ticket-Erstellungen desselben Nutzers das Limit nicht umgehen koennen.
+        Gibt None zurueck, wenn das Limit bereits erreicht ist.
+        """
+        async with _lock:
+            data = await asyncio.to_thread(_read_raw)
+            if len(_open_tickets_for(data, user_id, type_prefix)) >= max_allowed:
+                return None
+            data["counters"][counter_key] = data["counters"].get(counter_key, 0) + 1
+            value = data["counters"][counter_key]
+            await asyncio.to_thread(_write_raw, data)
+            return value
 
     async def next_counter(self, key: str) -> int:
         async with _lock:
-            data = _read_raw()
+            data = await asyncio.to_thread(_read_raw)
             data["counters"][key] = data["counters"].get(key, 0) + 1
             value = data["counters"][key]
-            _write_raw(data)
+            await asyncio.to_thread(_write_raw, data)
             return value
 
     async def all_tickets(self) -> list[TicketData]:
         async with _lock:
-            data = _read_raw()
+            data = await asyncio.to_thread(_read_raw)
             return [TicketData.from_dict(raw) for raw in data["tickets"].values()]
 
 

@@ -4,7 +4,7 @@ import discord
 # -------------------------------------------------------
 # Embed Constants
 # -------------------------------------------------------
-EMBED_IMAGE_URL = "attachment://cute-roles.gif"
+EMBED_IMAGE_URL = "attachment://cute_role.gif"
 EMBED_COLOR = discord.Color.purple()
 EMBED_TITLE = "⋆��� 𝗌𝖾𝗅𝖋 𝖼𝗎𝗍𝗂𝖊 𝗋𝗈𝗅𝖊𝖘ˎˊ˗⭑.ᐟ"
 EMBED_DESC = ("𝗐ä𝗁𝗅𝖊 𝗁𝗂𝖊𝗋 𝗋𝗈𝗅𝖑𝖊𝗇, 𝖉𝖎𝖊 𝖆𝖆 𝖘𝖆𝖘𝖒𝖊𝖓 𝖙𝖔 𝖽𝖎𝖗 𝖔𝖜𝖎𝖙𝖖𝖊𝖜!\n" 

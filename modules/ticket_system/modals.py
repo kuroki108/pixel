@@ -1,21 +1,14 @@
-"""
-Modals (Popup-Formulare) für den Bewerbungsbereich. Jede Rolle
-(Supporter, Designer, Event Manager) hat ihre eigenen Fragen.
-Beim Absenden wird das Ticket erstellt und die Antworten als Embed
-in den neuen Kanal gepostet.
-"""
-
 from __future__ import annotations
 
 import discord
 
 import config
-from ticket_system import ticket_manager
-from ticket_system.ticket_manager import TicketLimitReached, TICKET_TYPE_LABELS
+from modules.ticket_system import ticket_manager
+from modules.ticket_system.ticket_manager import TicketLimitReached, TICKET_TYPE_LABELS
 
 
 async def _finish_application(interaction: discord.Interaction, ticket_type: str, answers: dict[str, str]) -> None:
-    from ticket_system.views import TicketControlView  # lokaler Import verhindert Zirkelbezug
+    from modules.ticket_system.views import TicketControlView  # lokaler Import verhindert Zirkelbezug
 
     await interaction.response.defer(ephemeral=True, thinking=True)
     try:

@@ -198,7 +198,7 @@ class Counting(commands.Cog):
 
     @set_number.error
     async def set_number_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, commands.MissingPermissions):
+        if isinstance(error, commands.MissingAnyRole):
             await ctx.send("Dafür brauchst du Administrator-Rechte.")
         elif isinstance(error, commands.BadArgument):
             await ctx.send("Bitte eine gültige Zahl angeben, z. B. `!set 41`.")
