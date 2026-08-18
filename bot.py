@@ -44,6 +44,7 @@ INITIAL_EXTENSIONS = [
     "modules.log",
     "modules.fibo",
     "modules.number_guessing",
+    "modules.birthday",
     "modules.lvl_system.cogs.leveling",
 ]
 
