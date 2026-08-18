@@ -26,6 +26,7 @@ APPLICATION_CHANNEL_PREFIX: str = "bewerbung"
 # Emojis für Panel-Buttons (frei anpassbar)
 EMOJI_OPEN_TICKET = "🎫"
 EMOJI_CLAIM = "🙋"
+EMOJI_CLOSE = "🔒"
 EMOJI_DELETE = "🗑️"
 EMOJI_TRANSCRIPT = "📄"
 EMOJI_ADD_USER = "➕"
