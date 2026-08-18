@@ -12,18 +12,24 @@ BIRTHDAY_CHANNEL_ID = 1525603629321683007
 
 # Uhrzeit (UTC), zu der täglich auf Geburtstage geprüft wird.
 REMINDER_TIME_UTC = time(hour=8, minute=0, tzinfo=timezone.utc)
+# Uhrzeit (UTC), zu der die /kalender-Embeds täglich neu sortiert werden.
+CALENDAR_REFRESH_TIME_UTC = time(hour=0, minute=5, tzinfo=timezone.utc)
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "birthdays.json"
+CALENDAR_MESSAGES_PATH = Path(__file__).resolve().parent.parent / "data" / "birthday_calendar_messages.json"
 
 
 class Birthday(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._lock = asyncio.Lock()
+        self._calendar_lock = asyncio.Lock()
         self.reminder_task.start()
+        self.calendar_refresh_task.start()
 
     def cog_unload(self) -> None:
         self.reminder_task.cancel()
+        self.calendar_refresh_task.cancel()
 
     # ---------------------------------------------------------------
     # Persistenz (JSON-Datei: user_id -> {"day": int, "month": int, "year": int|None})
@@ -49,6 +55,61 @@ class Birthday(commands.Cog):
 
         async with self._lock:
             await asyncio.to_thread(_write)
+
+    # ---------------------------------------------------------------
+    # Persistenz der live aktualisierten /kalender-Nachrichten
+    # (channel_id -> message_id, eine live Nachricht pro Channel)
+    # ---------------------------------------------------------------
+
+    async def _load_calendar_messages(self) -> dict[str, int]:
+        def _read() -> dict[str, int]:
+            if not CALENDAR_MESSAGES_PATH.exists():
+                return {}
+            try:
+                return json.loads(CALENDAR_MESSAGES_PATH.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                return {}
+
+        return await asyncio.to_thread(_read)
+
+    async def _save_calendar_messages(self, refs: dict[str, int]) -> None:
+        def _write() -> None:
+            CALENDAR_MESSAGES_PATH.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = CALENDAR_MESSAGES_PATH.with_suffix(".tmp")
+            tmp_path.write_text(json.dumps(refs), encoding="utf-8")
+            tmp_path.replace(CALENDAR_MESSAGES_PATH)
+
+        async with self._calendar_lock:
+            await asyncio.to_thread(_write)
+
+    async def _register_calendar_message(self, channel_id: int, message_id: int) -> None:
+        refs = await self._load_calendar_messages()
+        refs[str(channel_id)] = message_id
+        await self._save_calendar_messages(refs)
+
+    async def _refresh_calendar_messages(self) -> None:
+        refs = await self._load_calendar_messages()
+        if not refs:
+            return
+
+        changed = False
+        for channel_id_str, message_id in list(refs.items()):
+            channel = self.bot.get_channel(int(channel_id_str))
+            if channel is None:
+                del refs[channel_id_str]
+                changed = True
+                continue
+
+            embed = await self._build_kalender_embed(channel.guild)
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.edit(embed=embed)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                del refs[channel_id_str]
+                changed = True
+
+        if changed:
+            await self._save_calendar_messages(refs)
 
     # ---------------------------------------------------------------
     # /birthday set|remove
@@ -81,6 +142,7 @@ class Birthday(commands.Cog):
         data = await self._load()
         data[str(interaction.user.id)] = {"day": tag, "month": monat, "year": jahr}
         await self._save(data)
+        await self._refresh_calendar_messages()
 
         wann = f"{tag:02d}.{monat:02d}." + (f"{jahr}" if jahr else "")
         await interaction.response.send_message(
@@ -98,20 +160,21 @@ class Birthday(commands.Cog):
             return
         del data[key]
         await self._save(data)
+        await self._refresh_calendar_messages()
         await interaction.response.send_message("✅ Dein Geburtstag wurde entfernt.", ephemeral=True)
 
     # ---------------------------------------------------------------
     # /kalender
     # ---------------------------------------------------------------
 
-    @app_commands.command(name="kalender", description="Zeigt alle eingetragenen Geburtstage.")
-    async def kalender(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
-
+    async def _build_kalender_embed(self, guild: discord.Guild | None) -> discord.Embed:
         data = await self._load()
         if not data:
-            await interaction.followup.send("Es sind noch keine Geburtstage eingetragen.")
-            return
+            return discord.Embed(
+                title="🎂 Geburtstagskalender",
+                description="Es sind noch keine Geburtstage eingetragen.",
+                color=discord.Color.from_rgb(0, 229, 255),
+            )
 
         today = date.today()
 
@@ -132,7 +195,7 @@ class Birthday(commands.Cog):
 
         lines = []
         for order, user_id, entry in entries:
-            member = interaction.guild.get_member(int(user_id)) if interaction.guild else None
+            member = guild.get_member(int(user_id)) if guild else None
             name = member.display_name if member else f"Nutzer {user_id}"
             wann = f"{entry['day']:02d}.{entry['month']:02d}."
             if entry.get("year"):
@@ -145,7 +208,18 @@ class Birthday(commands.Cog):
             description="\n".join(lines),
             color=discord.Color.from_rgb(0, 229, 255),
         )
+        embed.set_footer(text="Aktualisiert sich automatisch täglich sowie bei Änderungen")
+        return embed
+
+    @app_commands.command(name="kalender", description="Zeigt alle eingetragenen Geburtstage (aktualisiert sich automatisch).")
+    async def kalender(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+
+        embed = await self._build_kalender_embed(interaction.guild)
         await interaction.followup.send(embed=embed)
+
+        message = await interaction.original_response()
+        await self._register_calendar_message(message.channel.id, message.id)
 
     # ---------------------------------------------------------------
     # Täglicher Reminder
@@ -184,8 +258,18 @@ class Birthday(commands.Cog):
             except discord.HTTPException:
                 pass
 
+        await self._refresh_calendar_messages()
+
     @reminder_task.before_loop
     async def before_reminder_task(self) -> None:
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(time=CALENDAR_REFRESH_TIME_UTC)
+    async def calendar_refresh_task(self) -> None:
+        await self._refresh_calendar_messages()
+
+    @calendar_refresh_task.before_loop
+    async def before_calendar_refresh_task(self) -> None:
         await self.bot.wait_until_ready()
 
 
