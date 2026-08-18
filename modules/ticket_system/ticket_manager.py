@@ -21,8 +21,6 @@ from modules.ticket_system.transcript import build_transcript
 TICKET_TYPE_LABELS = {
     "support": "Support",
     "application_supporter": "Bewerbung - Supporter",
-    "application_designer": "Bewerbung - Designer",
-    "application_eventmanager": "Bewerbung - Event Manager",
 }
 
 

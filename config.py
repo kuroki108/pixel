@@ -26,14 +26,11 @@ APPLICATION_CHANNEL_PREFIX: str = "bewerbung"
 # Emojis für Panel-Buttons (frei anpassbar)
 EMOJI_OPEN_TICKET = "🎫"
 EMOJI_CLAIM = "🙋"
-EMOJI_CLOSE = "🔒"
 EMOJI_DELETE = "🗑️"
 EMOJI_TRANSCRIPT = "📄"
 EMOJI_ADD_USER = "➕"
 EMOJI_REMOVE_USER = "➖"
 EMOJI_SUPPORTER = "🛠️"
-EMOJI_DESIGNER = "🎨"
-EMOJI_EVENTMANAGER = "🎉"
 
 # Serverfarbe für Embeds (Hex als int, z. B. 0x5865F2)
 EMBED_COLOR: int = 0x2B2D31

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+from datetime import timedelta
 
 import discord
 from discord import app_commands
@@ -17,11 +18,21 @@ log = logging.getLogger("leveling")
 LEVEL_ROLE_CHOICES_LIMIT = 25  # Discord-Limit für Autocomplete-Vorschläge
 DEFAULT_LEVELUP_TEXT = "{mention} hat soeben Level {level} erreicht! 🎉"
 
+VOICE_XP_CAP_MINUTES = 90  # 1,5h Voice-XP pro Tag
+VOICE_XP_CAP_COOLDOWN = timedelta(hours=24)
+
+# Channel-IDs, in denen keine XP vergeben wird.
+NO_TEXT_XP_CHANNEL_IDS: set[int] = {1525603629548179608, 1538984826261217371}
+NO_VOICE_XP_CHANNEL_IDS: set[int] = {1525603629749240071, 1525603629929599151}
+
 
 class Leveling(commands.Cog):
     def __init__(self, bot: commands.Bot, db: Database) -> None:
         self.bot = bot
         self.db = db
+        # (guild_id, user_id) -> {"minutes": int, "capped": bool, "reset_at": datetime | None}
+        # In-Memory only: Cap wird bei Bot-Neustart zurückgesetzt.
+        self.voice_xp_tracker: dict[tuple[int, int], dict] = {}
         self.voice_xp_task.start()
 
     def cog_unload(self) -> None:
@@ -36,6 +47,8 @@ class Leveling(commands.Cog):
         if message.author.bot or message.guild is None:
             return
         if not message.content and not message.attachments:
+            return
+        if message.channel.id in NO_TEXT_XP_CHANNEL_IDS:
             return
 
         guild_id = message.guild.id
@@ -71,7 +84,7 @@ class Leveling(commands.Cog):
             afk_channel_id = guild.afk_channel.id if guild.afk_channel else None
 
             for channel in guild.voice_channels:
-                if channel.id == afk_channel_id:
+                if channel.id == afk_channel_id or channel.id in NO_VOICE_XP_CHANNEL_IDS:
                     continue
                 members = [
                     m for m in channel.members
@@ -81,6 +94,23 @@ class Leveling(commands.Cog):
                     continue  # kein XP wenn alleine im Channel (verhindert AFK-Farming)
 
                 for member in members:
+                    key = (guild.id, member.id)
+                    now = discord.utils.utcnow()
+                    entry = self.voice_xp_tracker.get(key)
+                    if entry and entry["capped"]:
+                        if now < entry["reset_at"]:
+                            continue  # 1,5h/24h-Cap aktiv, kein XP
+                        entry = None  # Cap-Fenster abgelaufen, neu starten
+
+                    if entry is None:
+                        entry = {"minutes": 0, "capped": False, "reset_at": None}
+
+                    entry["minutes"] += 1
+                    if entry["minutes"] >= VOICE_XP_CAP_MINUTES:
+                        entry["capped"] = True
+                        entry["reset_at"] = now + VOICE_XP_CAP_COOLDOWN
+                    self.voice_xp_tracker[key] = entry
+
                     stats = await self.db.get_user(guild.id, member.id)
                     new_xp, new_level, levelups = add_xp(stats.xp, stats.level, config.voice_xp_per_min)
                     new_total = stats.total_xp + config.voice_xp_per_min

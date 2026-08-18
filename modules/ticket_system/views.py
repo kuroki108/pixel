@@ -9,8 +9,6 @@ from modules.ticket_system.storage import store
 from modules.ticket_system.ticket_manager import TicketLimitReached
 from modules.ticket_system.modals import (
     SupporterApplicationModal,
-    DesignerApplicationModal,
-    EventManagerApplicationModal,
 )
 
 
@@ -70,26 +68,6 @@ class ApplicationPanelView(discord.ui.View):
     )
     async def apply_supporter(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.send_modal(SupporterApplicationModal())
-
-    @discord.ui.button(
-        label="Designer",
-        emoji=config.EMOJI_DESIGNER,
-        style=discord.ButtonStyle.primary,
-        custom_id="za_open_app_designer",
-        row=0,
-    )
-    async def apply_designer(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        await interaction.response.send_modal(DesignerApplicationModal())
-
-    @discord.ui.button(
-        label="Event Manager",
-        emoji=config.EMOJI_EVENTMANAGER,
-        style=discord.ButtonStyle.primary,
-        custom_id="za_open_app_eventmanager",
-        row=0,
-    )
-    async def apply_eventmanager(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        await interaction.response.send_modal(EventManagerApplicationModal())
 
 
 # ---------------------------------------------------------------------------
@@ -173,20 +151,6 @@ class TicketControlView(discord.ui.View):
             return None
         return ticket
 
-    # -- Claim -------------------------------------------------------------
-    @discord.ui.button(label="Claim", emoji=config.EMOJI_CLAIM, style=discord.ButtonStyle.secondary, custom_id="za_claim", row=0)
-    async def claim(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        ticket = await self._get_ticket_or_warn(interaction)
-        if not ticket:
-            return
-        if not permissions.is_staff_for_ticket_type(interaction.user, ticket.type):
-            await interaction.response.send_message("❌ Nur Teammitglieder können Tickets claimen.", ephemeral=True)
-            return
-        if ticket.claimed_by:
-            await interaction.response.send_message(f"⚠️ Dieses Ticket wurde bereits von <@{ticket.claimed_by}> übernommen.", ephemeral=True)
-            return
-        await ticket_manager.claim_ticket(interaction.channel, interaction.user, ticket)
-        await interaction.response.send_message(f"🙋 {interaction.user.mention} hat dieses Ticket übernommen.")
 
     # -- Close ---------------------------------------------------------------
     @discord.ui.button(label="Close", emoji=config.EMOJI_CLOSE, style=discord.ButtonStyle.secondary, custom_id="za_close", row=0)
@@ -205,20 +169,6 @@ class TicketControlView(discord.ui.View):
         await interaction.response.send_message(
             f"🔒 Ticket wurde von {interaction.user.mention} geschlossen. Nur das Team kann jetzt noch schreiben."
         )
-
-    # -- Transcript ------------------------------------------------------------
-    @discord.ui.button(label="Transcript", emoji=config.EMOJI_TRANSCRIPT, style=discord.ButtonStyle.secondary, custom_id="za_transcript", row=0)
-    async def transcript(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        ticket = await self._get_ticket_or_warn(interaction)
-        if not ticket:
-            return
-        is_opener = interaction.user.id == ticket.opener_id
-        if not is_opener and not permissions.is_staff_for_ticket_type(interaction.user, ticket.type):
-            await interaction.response.send_message("❌ Du hast keine Berechtigung, das Transcript abzurufen.", ephemeral=True)
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        file = await ticket_manager.generate_transcript_file(interaction.channel)
-        await interaction.followup.send("📄 Hier ist das Transcript:", file=file, ephemeral=True)
 
     # -- Add user ------------------------------------------------------------
     @discord.ui.button(label="Add User", emoji=config.EMOJI_ADD_USER, style=discord.ButtonStyle.success, custom_id="za_adduser", row=1)

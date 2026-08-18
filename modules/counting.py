@@ -1,8 +1,14 @@
+import asyncio
+import json
+from pathlib import Path
+
 import discord
 from discord.ext import commands
 from bot import ADMIN_ROLES
 
 COUNTING_CHANNEL_ID = 1525603629548179608
+
+STATE_PATH = Path(__file__).resolve().parent.parent / "data" / "counting_state.json"
 
 ACHIEVEMENTS = {
     42: (
@@ -130,6 +136,35 @@ class Counting(commands.Cog):
         self.bot = bot
         self.count = 0
         self.last_user_id = None
+        self._state_lock = asyncio.Lock()
+
+    async def cog_load(self) -> None:
+        state = await self._load_state()
+        self.count = state.get("count", 0)
+        self.last_user_id = state.get("last_user_id")
+
+    async def _load_state(self) -> dict:
+        def _read() -> dict:
+            if not STATE_PATH.exists():
+                return {}
+            try:
+                return json.loads(STATE_PATH.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                return {}
+
+        return await asyncio.to_thread(_read)
+
+    async def _save_state(self) -> None:
+        state = {"count": self.count, "last_user_id": self.last_user_id}
+
+        def _write() -> None:
+            STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = STATE_PATH.with_suffix(".tmp")
+            tmp_path.write_text(json.dumps(state), encoding="utf-8")
+            tmp_path.replace(STATE_PATH)
+
+        async with self._state_lock:
+            await asyncio.to_thread(_write)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -149,6 +184,7 @@ class Counting(commands.Cog):
         if self.last_user_id is not None and message.author.id == self.last_user_id:
             self.count = 0
             self.last_user_id = None
+            await self._save_state()
             await message.add_reaction("❌")
             await message.channel.send(
                 f"{message.author.mention}, du warst bereits dran. "
@@ -160,6 +196,7 @@ class Counting(commands.Cog):
         if number != expected:
             self.count = 0
             self.last_user_id = None
+            await self._save_state()
             await message.add_reaction("❌")
             await message.channel.send(
                 f"Falsche Zahl! Erwartet wurde **{expected}**. "
@@ -170,6 +207,7 @@ class Counting(commands.Cog):
         # Richtig
         self.count = number
         self.last_user_id = message.author.id
+        await self._save_state()
         await message.add_reaction("✅")
 
         if self.count in ACHIEVEMENTS:
@@ -190,6 +228,7 @@ class Counting(commands.Cog):
 
         self.count = number
         self.last_user_id = None  # Reset, damit niemand fälschlich als "doppelt dran" gilt
+        await self._save_state()
 
         await ctx.send(
             f"Zählerstand wurde auf **{number}** gesetzt. "
