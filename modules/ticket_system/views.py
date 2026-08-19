@@ -151,25 +151,7 @@ class TicketControlView(discord.ui.View):
             return None
         return ticket
 
-
-    # -- Close ---------------------------------------------------------------
-    @discord.ui.button(label="Close", emoji=config.EMOJI_CLOSE, style=discord.ButtonStyle.secondary, custom_id="za_close", row=0)
-    async def close(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        ticket = await self._get_ticket_or_warn(interaction)
-        if not ticket:
-            return
-        is_opener = interaction.user.id == ticket.opener_id
-        if not is_opener and not permissions.is_staff_for_ticket_type(interaction.user, ticket.type):
-            await interaction.response.send_message("❌ Du hast keine Berechtigung, dieses Ticket zu schließen.", ephemeral=True)
-            return
-        if ticket.closed:
-            await interaction.response.send_message("⚠️ Dieses Ticket ist bereits geschlossen.", ephemeral=True)
-            return
-        await ticket_manager.close_ticket(interaction.channel, interaction.user, ticket)
-        await interaction.response.send_message(
-            f"🔒 Ticket wurde von {interaction.user.mention} geschlossen. Nur das Team kann jetzt noch schreiben."
-        )
-
+    
     # -- Add user ------------------------------------------------------------
     @discord.ui.button(label="Add User", emoji=config.EMOJI_ADD_USER, style=discord.ButtonStyle.success, custom_id="za_adduser", row=1)
     async def add_user(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
