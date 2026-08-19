@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 
-# TODO: echte Channel-IDs eintragen, in denen Attachment-Nachrichten automatisch
-# einen Diskussions-Thread bekommen (Nachrichten ohne Attachment werden gelöscht).
 MEDIA_CHANNEL_ID_1 = 1525603629321683005
 MEDIA_CHANNEL_IDS = {MEDIA_CHANNEL_ID_1}
 
@@ -24,7 +22,7 @@ class MediaThreads(commands.Cog):
 
         try:
             await message.create_thread(
-                name=f"💬 Diskussion • {message.author.display_name}",
+                name=f"💬 Talk about it • {message.author.display_name}",
                 auto_archive_duration=1440,
             )
         except discord.HTTPException as e:
