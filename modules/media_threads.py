@@ -1,8 +1,14 @@
 import discord
 from discord.ext import commands
 
-MEDIA_CHANNEL_ID_1 = 1525603629321683005
-MEDIA_CHANNEL_IDS = {MEDIA_CHANNEL_ID_1}
+SELFIE_CHANNEL_ID_1 = 1525603629321683005
+MEDIA_CHANNEL_ID_1 = 1525603629141200932
+# In diesem Channel wird kein Attachment verlangt (reiner Text erlaubt),
+# aber trotzdem unter jeder Nachricht ein Thread erstellt.
+VORSTELLUNG_CHANNEL_ID_1 = 1525603629321683006
+
+MEDIA_CHANNEL_IDS = {MEDIA_CHANNEL_ID_1, SELFIE_CHANNEL_ID_1}
+TEXT_ONLY_THREAD_CHANNEL_IDS = {VORSTELLUNG_CHANNEL_ID_1}
 
 
 class MediaThreads(commands.Cog):
@@ -13,11 +19,14 @@ class MediaThreads(commands.Cog):
     async def on_message(self, message: discord.Message) -> None:
         if message.author.bot:
             return
-        if message.channel.id not in MEDIA_CHANNEL_IDS:
-            return
 
-        if not message.attachments:
-            await message.delete()
+        if message.channel.id in MEDIA_CHANNEL_IDS:
+            if not message.attachments:
+                await message.delete()
+                return
+        elif message.channel.id in TEXT_ONLY_THREAD_CHANNEL_IDS:
+            pass  # kein Attachment nötig, direkt Thread erstellen
+        else:
             return
 
         try:
