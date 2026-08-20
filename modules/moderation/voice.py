@@ -55,6 +55,8 @@ class Voice(commands.Cog):
         await interaction.response.defer()
         count = 0
         for member in channel.members:
+            if member.id == interaction.user.id:
+                continue
             try:
                 await member.edit(mute=True)
                 count += 1
