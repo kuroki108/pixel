@@ -9,7 +9,6 @@ Pixel ist der Discord-Bot des Servers **zen arcade** – gebaut mit [discord.py]
 - 👋 **Onboarding** – automatische Rollenvergabe & generiertes Willkommensbild
 - 🔢 **Zählspiel** – Counting-Channel mit Achievements
 - 📝 **Mod-Log** – Logging von Message-Edits/-Deletes, Joins/Leaves/Kicks, Bans
-- ⏰ **Bump-Reminder** – erinnert automatisch ans nächste `/bump` bei Disboard
 - 🔢 **Number Guessing** – kleines Ratespiel per Slash-Command
 
 ## Setup

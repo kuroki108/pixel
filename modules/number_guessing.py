@@ -1,60 +1,27 @@
 import asyncio
-import json
 import random
 import time
-from pathlib import Path
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+from modules.database import Database
+
 GUESS_TIME_LIMIT_SECONDS = 120
 MAX_ATTEMPTS_FOR_POINT = 7
 
-SCORES_PATH = Path(__file__).resolve().parent.parent / "data" / "number_guessing_scores.json"
-
 
 class NumberGuessing(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot, db: Database):
         self.bot = bot
+        self.db = db
         self.game: dict | None = None  # es läuft immer nur ein Spiel gleichzeitig (global)
         self.timeout_task: asyncio.Task | None = None
-        self._scores_lock = asyncio.Lock()
 
     def cog_unload(self) -> None:
         if self.timeout_task and not self.timeout_task.done():
             self.timeout_task.cancel()
-
-    # ---------------------------------------------------------------
-    # Score-Persistenz (JSON-Datei)
-    # ---------------------------------------------------------------
-
-    async def _load_scores(self) -> dict[str, int]:
-        def _read() -> dict[str, int]:
-            if not SCORES_PATH.exists():
-                return {}
-            try:
-                return json.loads(SCORES_PATH.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                return {}
-
-        return await asyncio.to_thread(_read)
-
-    async def _save_scores(self, scores: dict[str, int]) -> None:
-        def _write() -> None:
-            SCORES_PATH.parent.mkdir(parents=True, exist_ok=True)
-            tmp_path = SCORES_PATH.with_suffix(".tmp")
-            tmp_path.write_text(json.dumps(scores, indent=2), encoding="utf-8")
-            tmp_path.replace(SCORES_PATH)
-
-        await asyncio.to_thread(_write)
-
-    async def _add_point(self, user_id: int) -> None:
-        async with self._scores_lock:
-            scores = await self._load_scores()
-            key = str(user_id)
-            scores[key] = scores.get(key, 0) + 1
-            await self._save_scores(scores)
 
     # ---------------------------------------------------------------
     # /number_guessing
@@ -168,7 +135,7 @@ class NumberGuessing(commands.Cog):
         )
         if won_point:
             embed.add_field(name="Punkt", value="✅ +1 (in ≤7 Versuchen erraten)", inline=False)
-            await self._add_point(message.author.id)
+            await self.db.add_number_guessing_point(message.author.id)
         else:
             embed.add_field(name="Punkt", value="❌ Kein Punkt (mehr als 7 Versuche gebraucht)", inline=False)
 
@@ -185,17 +152,15 @@ class NumberGuessing(commands.Cog):
     async def number_score(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        scores = await self._load_scores()
-        if not scores:
+        ranked = await self.db.get_number_guessing_scores(limit=10)
+        if not ranked:
             await interaction.followup.send("Noch keine Punkte vergeben.")
             return
-
-        ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:10]
 
         lines = []
         medals = {1: "🥇", 2: "🥈", 3: "🥉"}
         for idx, (user_id, points) in enumerate(ranked, start=1):
-            member = interaction.guild.get_member(int(user_id)) if interaction.guild else None
+            member = interaction.guild.get_member(user_id) if interaction.guild else None
             name = member.display_name if member else f"Nutzer {user_id}"
             prefix = medals.get(idx, f"`#{idx}`")
             lines.append(f"{prefix} **{name}** — {points} Punkt{'e' if points != 1 else ''}")
@@ -210,4 +175,5 @@ class NumberGuessing(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(NumberGuessing(bot))
+    db: Database = bot.db  # type: ignore[attr-defined]
+    await bot.add_cog(NumberGuessing(bot, db))

@@ -2,72 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
+import logging
 import time
-from dataclasses import dataclass, field, asdict
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
-DATA_FILE = os.path.join(DATA_DIR, "tickets.json")
+import aiosqlite
 
-_lock = asyncio.Lock()
+log = logging.getLogger("ticket_system.storage")
 
-_DEFAULT_DATA: dict[str, Any] = {
-    "tickets": {},
-    "counters": {"support": 0, "application": 0},
-}
-
-
-def _normalize_data(data: dict[str, Any]) -> dict[str, Any]:
-    tickets = data.get("tickets")
-    counters = data.get("counters")
-
-    if not isinstance(tickets, dict):
-        tickets = {}
-    if not isinstance(counters, dict):
-        counters = {}
-
-    normalized = {
-        "tickets": tickets,
-        "counters": {
-            "support": int(counters.get("support", 0) or 0),
-            "application": int(counters.get("application", 0) or 0),
-        },
-    }
-
-    for key, value in counters.items():
-        if key not in normalized["counters"]:
-            try:
-                normalized["counters"][key] = int(value)
-            except (TypeError, ValueError):
-                normalized["counters"][key] = 0
-
-    return normalized
-
-
-def _ensure_file() -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(_DEFAULT_DATA, f, indent=2)
-
-
-def _read_raw() -> dict[str, Any]:
-    _ensure_file()
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        try:
-            return _normalize_data(json.load(f))
-        except json.JSONDecodeError:
-            # Datei ist beschädigt/leer -> mit Defaults neu anlegen statt zu crashen
-            return _normalize_data(json.loads(json.dumps(_DEFAULT_DATA)))
-
-
-def _write_raw(data: dict[str, Any]) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    tmp_path = DATA_FILE + ".tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-    os.replace(tmp_path, DATA_FILE)  # atomar auf allen gängigen Betriebssystemen
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+LEGACY_JSON_PATH = DATA_DIR / "tickets.json"
 
 
 @dataclass
@@ -81,61 +27,158 @@ class TicketData:
     added_users: list[int] = field(default_factory=list)
     answers: dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
     @staticmethod
-    def from_dict(d: dict[str, Any]) -> "TicketData":
+    def _from_row(row: tuple) -> "TicketData":
+        channel_id, type_, opener_id, created_at, claimed_by, closed, added_users_json, answers_json = row
         return TicketData(
-            channel_id=d["channel_id"],
-            type=d["type"],
-            opener_id=d["opener_id"],
-            created_at=d.get("created_at", time.time()),
-            claimed_by=d.get("claimed_by"),
-            closed=d.get("closed", False),
-            added_users=list(d.get("added_users", [])),
-            answers=dict(d.get("answers", {})),
+            channel_id=channel_id,
+            type=type_,
+            opener_id=opener_id,
+            created_at=created_at,
+            claimed_by=claimed_by,
+            closed=bool(closed),
+            added_users=json.loads(added_users_json),
+            answers=json.loads(answers_json),
         )
 
 
-def _open_tickets_for(data: dict[str, Any], user_id: int, type_prefix: str) -> list[TicketData]:
-    result = []
-    for raw in data["tickets"].values():
-        opener_id = raw.get("opener_id")
-        ticket_type = raw.get("type")
-        if opener_id is None or ticket_type is None:
-            continue  # unvollstaendiger/beschaedigter Eintrag -> ignorieren statt crashen
-        if opener_id == user_id and ticket_type.startswith(type_prefix) and not raw.get("closed", False):
-            result.append(TicketData.from_dict(raw))
-    return result
-
-
 class TicketStore:
-    """Async-sichere Schnittstelle auf die JSON-Datei."""
+    """Async-sichere Schnittstelle auf die `tickets`/`ticket_counters`-Tabellen
+    der Master-DB (siehe modules/database.py). Hängt sich per bind() an die
+    vom Bot bereits geöffnete aiosqlite-Connection -- store ist ein Modul-Singleton,
+    der schon beim Import existiert, lange bevor die DB-Connection in
+    setup_hook() steht, daher die getrennte bind()-Stufe."""
+
+    def __init__(self) -> None:
+        self._conn: aiosqlite.Connection | None = None
+        self._lock = asyncio.Lock()
+
+    def bind(self, conn: aiosqlite.Connection) -> None:
+        self._conn = conn
+
+    def _require_conn(self) -> aiosqlite.Connection:
+        if self._conn is None:
+            raise RuntimeError(
+                "TicketStore wurde noch nicht an eine DB-Connection gebunden -- "
+                "bind() muss in setup_hook() vor dem Laden der Extensions laufen."
+            )
+        return self._conn
+
+    async def migrate_legacy_json(self) -> None:
+        """Importiert die alte tickets.json einmalig (nur falls die Tabelle noch
+        leer ist) und benennt die Datei danach in .migrated um, statt sie zu
+        löschen -- im Fehlerfall bleibt sie unangetastet liegen."""
+        conn = self._require_conn()
+
+        cur = await conn.execute("SELECT COUNT(*) FROM tickets")
+        (existing,) = await cur.fetchone()
+        if existing > 0:
+            return
+        if not LEGACY_JSON_PATH.exists():
+            return
+
+        try:
+            raw = json.loads(LEGACY_JSON_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("Konnte tickets.json nicht lesen (%s) -- Migration übersprungen.", e)
+            return
+
+        tickets = raw.get("tickets", {})
+        counters = raw.get("counters", {})
+
+        for entry in tickets.values():
+            opener_id = entry.get("opener_id")
+            ticket_type = entry.get("type")
+            channel_id = entry.get("channel_id")
+            if opener_id is None or ticket_type is None or channel_id is None:
+                continue  # unvollstaendiger/beschaedigter Eintrag -> ignorieren statt crashen
+            await conn.execute(
+                """
+                INSERT INTO tickets (channel_id, type, opener_id, created_at, claimed_by, closed, added_users, answers)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (channel_id) DO NOTHING
+                """,
+                (
+                    channel_id,
+                    ticket_type,
+                    opener_id,
+                    entry.get("created_at", time.time()),
+                    entry.get("claimed_by"),
+                    int(entry.get("closed", False)),
+                    json.dumps(list(entry.get("added_users", []))),
+                    json.dumps(dict(entry.get("answers", {}))),
+                ),
+            )
+        for counter_key, value in counters.items():
+            await conn.execute(
+                """
+                INSERT INTO ticket_counters (counter_key, value) VALUES (?, ?)
+                ON CONFLICT (counter_key) DO UPDATE SET value = excluded.value
+                """,
+                (counter_key, int(value or 0)),
+            )
+        await conn.commit()
+
+        try:
+            LEGACY_JSON_PATH.rename(LEGACY_JSON_PATH.with_suffix(".json.migrated"))
+        except OSError as e:
+            log.warning("Konnte tickets.json nicht als migriert markieren (%s) -- Datei bleibt liegen.", e)
+
+        log.info("tickets.json migriert (%d Tickets, %d Zähler).", len(tickets), len(counters))
 
     async def get_ticket(self, channel_id: int) -> Optional[TicketData]:
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            raw = data["tickets"].get(str(channel_id))
-            return TicketData.from_dict(raw) if raw else None
+        conn = self._require_conn()
+        async with self._lock:
+            cur = await conn.execute(
+                "SELECT channel_id, type, opener_id, created_at, claimed_by, closed, added_users, answers "
+                "FROM tickets WHERE channel_id = ?",
+                (channel_id,),
+            )
+            row = await cur.fetchone()
+            return TicketData._from_row(row) if row else None
 
     async def save_ticket(self, ticket: TicketData) -> None:
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            data["tickets"][str(ticket.channel_id)] = ticket.to_dict()
-            await asyncio.to_thread(_write_raw, data)
+        conn = self._require_conn()
+        async with self._lock:
+            await conn.execute(
+                """
+                INSERT INTO tickets (channel_id, type, opener_id, created_at, claimed_by, closed, added_users, answers)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (channel_id) DO UPDATE SET
+                    type = excluded.type, opener_id = excluded.opener_id, created_at = excluded.created_at,
+                    claimed_by = excluded.claimed_by, closed = excluded.closed,
+                    added_users = excluded.added_users, answers = excluded.answers
+                """,
+                (
+                    ticket.channel_id,
+                    ticket.type,
+                    ticket.opener_id,
+                    ticket.created_at,
+                    ticket.claimed_by,
+                    int(ticket.closed),
+                    json.dumps(ticket.added_users),
+                    json.dumps(ticket.answers),
+                ),
+            )
+            await conn.commit()
 
     async def delete_ticket(self, channel_id: int) -> None:
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            data["tickets"].pop(str(channel_id), None)
-            await asyncio.to_thread(_write_raw, data)
+        conn = self._require_conn()
+        async with self._lock:
+            await conn.execute("DELETE FROM tickets WHERE channel_id = ?", (channel_id,))
+            await conn.commit()
 
     async def open_tickets_by_user(self, user_id: int, type_prefix: str) -> list[TicketData]:
         """Alle offenen Tickets eines Nutzers, deren type mit type_prefix beginnt."""
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            return _open_tickets_for(data, user_id, type_prefix)
+        conn = self._require_conn()
+        async with self._lock:
+            cur = await conn.execute(
+                "SELECT channel_id, type, opener_id, created_at, claimed_by, closed, added_users, answers "
+                "FROM tickets WHERE opener_id = ? AND type LIKE ? AND closed = 0",
+                (user_id, f"{type_prefix}%"),
+            )
+            rows = await cur.fetchall()
+            return [TicketData._from_row(row) for row in rows]
 
     async def reserve_ticket_slot(
         self, user_id: int, type_prefix: str, max_allowed: int, counter_key: str
@@ -146,27 +189,56 @@ class TicketStore:
         Ticket-Erstellungen desselben Nutzers das Limit nicht umgehen koennen.
         Gibt None zurueck, wenn das Limit bereits erreicht ist.
         """
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            if len(_open_tickets_for(data, user_id, type_prefix)) >= max_allowed:
+        conn = self._require_conn()
+        async with self._lock:
+            cur = await conn.execute(
+                "SELECT COUNT(*) FROM tickets WHERE opener_id = ? AND type LIKE ? AND closed = 0",
+                (user_id, f"{type_prefix}%"),
+            )
+            (open_count,) = await cur.fetchone()
+            if open_count >= max_allowed:
                 return None
-            data["counters"][counter_key] = data["counters"].get(counter_key, 0) + 1
-            value = data["counters"][counter_key]
-            await asyncio.to_thread(_write_raw, data)
+
+            await conn.execute(
+                """
+                INSERT INTO ticket_counters (counter_key, value) VALUES (?, 1)
+                ON CONFLICT (counter_key) DO UPDATE SET value = value + 1
+                """,
+                (counter_key,),
+            )
+            cur = await conn.execute(
+                "SELECT value FROM ticket_counters WHERE counter_key = ?", (counter_key,)
+            )
+            (value,) = await cur.fetchone()
+            await conn.commit()
             return value
 
     async def next_counter(self, key: str) -> int:
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            data["counters"][key] = data["counters"].get(key, 0) + 1
-            value = data["counters"][key]
-            await asyncio.to_thread(_write_raw, data)
+        conn = self._require_conn()
+        async with self._lock:
+            await conn.execute(
+                """
+                INSERT INTO ticket_counters (counter_key, value) VALUES (?, 1)
+                ON CONFLICT (counter_key) DO UPDATE SET value = value + 1
+                """,
+                (key,),
+            )
+            cur = await conn.execute(
+                "SELECT value FROM ticket_counters WHERE counter_key = ?", (key,)
+            )
+            (value,) = await cur.fetchone()
+            await conn.commit()
             return value
 
     async def all_tickets(self) -> list[TicketData]:
-        async with _lock:
-            data = await asyncio.to_thread(_read_raw)
-            return [TicketData.from_dict(raw) for raw in data["tickets"].values()]
+        conn = self._require_conn()
+        async with self._lock:
+            cur = await conn.execute(
+                "SELECT channel_id, type, opener_id, created_at, claimed_by, closed, added_users, answers "
+                "FROM tickets"
+            )
+            rows = await cur.fetchall()
+            return [TicketData._from_row(row) for row in rows]
 
 
 store = TicketStore()

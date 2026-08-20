@@ -1,14 +1,8 @@
-import asyncio
-import json
-from pathlib import Path
-
 import discord
 from discord.ext import commands
-from bot import ADMIN_ROLES
 
-COUNTING_CHANNEL_ID = 1525603629548179608
-
-STATE_PATH = Path(__file__).resolve().parent.parent / "data" / "counting_state.json"
+from config import ADMIN_ROLES, COUNTING_CHANNEL_ID
+from modules.database import Database
 
 ACHIEVEMENTS = {
     42: (
@@ -132,39 +126,17 @@ ACHIEVEMENTS = {
 
 
 class Counting(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot, db: Database):
         self.bot = bot
+        self.db = db
         self.count = 0
         self.last_user_id = None
-        self._state_lock = asyncio.Lock()
 
     async def cog_load(self) -> None:
-        state = await self._load_state()
-        self.count = state.get("count", 0)
-        self.last_user_id = state.get("last_user_id")
-
-    async def _load_state(self) -> dict:
-        def _read() -> dict:
-            if not STATE_PATH.exists():
-                return {}
-            try:
-                return json.loads(STATE_PATH.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                return {}
-
-        return await asyncio.to_thread(_read)
+        self.count, self.last_user_id = await self.db.get_counting_state(COUNTING_CHANNEL_ID)
 
     async def _save_state(self) -> None:
-        state = {"count": self.count, "last_user_id": self.last_user_id}
-
-        def _write() -> None:
-            STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-            tmp_path = STATE_PATH.with_suffix(".tmp")
-            tmp_path.write_text(json.dumps(state), encoding="utf-8")
-            tmp_path.replace(STATE_PATH)
-
-        async with self._state_lock:
-            await asyncio.to_thread(_write)
+        await self.db.set_counting_state(COUNTING_CHANNEL_ID, self.count, self.last_user_id)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -246,4 +218,5 @@ class Counting(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Counting(bot))
+    db: Database = bot.db  # type: ignore[attr-defined]
+    await bot.add_cog(Counting(bot, db))

@@ -3,12 +3,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime, timezone
 
-# ---------------------------------------------------------------------------
-# KONFIGURATION - hier deine echten Channel-IDs eintragen
-# ---------------------------------------------------------------------------
-MESSAGE_LOG_CHANNEL_ID = 1525603629929599154   # edits / deletes
-MEMBER_LOG_CHANNEL_ID  = 1529211146748428449   # join / leave / kick
-MOD_LOG_CHANNEL_ID     = 1529211176809136208   # ban / unban / timeout / mute
+from config import MESSAGE_LOG_CHANNEL_ID, MEMBER_LOG_CHANNEL_ID, MOD_LOG_CHANNEL_ID
 
 
 COLOR_EDIT   = discord.Color.orange()

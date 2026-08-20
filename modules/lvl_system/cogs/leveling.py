@@ -9,7 +9,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from modules.lvl_system.database import Database
+from config import NO_TEXT_XP_CHANNEL_IDS, NO_VOICE_XP_CHANNEL_IDS
+from modules.database import Database
 from modules.lvl_system.utils.leveling_math import add_xp, xp_for_next_level
 from modules.lvl_system.utils.rank_card import generate_rank_card
 
@@ -20,10 +21,6 @@ DEFAULT_LEVELUP_TEXT = "{mention} hat soeben Level {level} erreicht! 🎉"
 
 VOICE_XP_CAP_MINUTES = 90  # 1,5h Voice-XP pro Tag
 VOICE_XP_CAP_COOLDOWN = timedelta(hours=24)
-
-# Channel-IDs, in denen keine XP vergeben wird.
-NO_TEXT_XP_CHANNEL_IDS: set[int] = {1525603629548179608, 1539262663404683384}
-NO_VOICE_XP_CHANNEL_IDS: set[int] = {1525603629749240071, 1525603629929599151}
 
 
 class Leveling(commands.Cog):

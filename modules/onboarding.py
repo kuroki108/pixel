@@ -8,19 +8,10 @@ from pathlib import Path
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 
-WELCOME_CHANNEL_ID = 1525603628977619056
+from config import WELCOME_CHANNEL_ID
+from config import ONBOARDING_ROLE_IDS as ROLE_IDS
 
 logger = logging.getLogger("bot.onboarding")
-
-
-ROLE_IDS: list[int] = [
-    1525603628318982325, #Special
-    1525603628298141788, #About me
-    1525603628256329917, #Pings 
-    1525603628256329909, #Gaming
-    1527265648764522517, #Asthatics
-    1525603628298141789  #Member
-]
 
 
 class Onboarding(commands.Cog):

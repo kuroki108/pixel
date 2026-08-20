@@ -14,8 +14,10 @@ except ImportError:
     pass  # python-dotenv ist optional; Umgebungsvariablen funktionieren auch ohne
 
 import config
+from config import ADMIN_ROLES
 from modules.ticket_system.views import all_persistent_views
-from modules.lvl_system.database import Database
+from modules.ticket_system.storage import store as ticket_store
+from modules.database import Database
 
 # Modules
 from modules.selfroles import RoleView01, RoleView02, build_selfroles_embed
@@ -28,12 +30,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 log = logging.getLogger("zen_arcade")
 
 # -------------------------------------------------------
-# Admin Roles
-# -------------------------------------------------------
-
-ADMIN_ROLES = (1531365140627456000, 1525603628339957945, 1531374771474923592)
-
-# -------------------------------------------------------
 # Bot Configuration
 # -------------------------------------------------------
 
@@ -42,7 +38,6 @@ INITIAL_EXTENSIONS = [
     "modules.onboarding",
     "modules.counting",
     "modules.log",
-    "modules.fibo",
     "modules.number_guessing",
     "modules.birthday",
     "modules.media_threads",
@@ -61,10 +56,16 @@ class ZenArcadeBot(commands.Bot):
         self.db: Database | None = None
 
     async def setup_hook(self) -> None:
-        # Datenbank fürs Leveling-System verbinden (muss vor dem Laden der
-        # leveling-Extension stehen, siehe modules/lvl_system/cogs/leveling.py::setup)
+        # Master-Datenbank verbinden (muss vor dem Laden der Extensions stehen,
+        # da leveling.py/counting.py/birthday.py/number_guessing.py's setup()
+        # alle bot.db lesen). Migriert dabei transparent alte JSON-Dateien und
+        # die alte Leveling-DB, siehe modules/database.py.
         self.db = await Database.connect()
-        log.info("Leveling-Datenbank verbunden.")
+        log.info("Master-Datenbank verbunden.")
+
+        # Ticket-Store an dieselbe Connection binden + alte tickets.json migrieren.
+        ticket_store.bind(self.db.conn)
+        await ticket_store.migrate_legacy_json()
 
         # Ticket System Views
         for view in all_persistent_views():
@@ -96,7 +97,7 @@ class ZenArcadeBot(commands.Bot):
     async def close(self) -> None:
         if self.db:
             await self.db.close()
-            log.info("Leveling-Datenbank geschlossen.")
+            log.info("Master-Datenbank geschlossen.")
         await super().close()
 
     async def on_ready(self) -> None:

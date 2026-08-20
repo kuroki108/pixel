@@ -1,11 +1,7 @@
 import discord
 from discord.ext import commands
 
-SELFIE_CHANNEL_ID_1 = 1525603629321683005
-MEDIA_CHANNEL_ID_1 = 1525603629141200932
-# In diesem Channel wird kein Attachment verlangt (reiner Text erlaubt),
-# aber trotzdem unter jeder Nachricht ein Thread erstellt.
-VORSTELLUNG_CHANNEL_ID_1 = 1525603629321683006
+from config import MEDIA_CHANNEL_ID_1, SELFIE_CHANNEL_ID_1, VORSTELLUNG_CHANNEL_ID_1
 
 MEDIA_CHANNEL_IDS = {MEDIA_CHANNEL_ID_1, SELFIE_CHANNEL_ID_1}
 TEXT_ONLY_THREAD_CHANNEL_IDS = {VORSTELLUNG_CHANNEL_ID_1}
