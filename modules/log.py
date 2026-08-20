@@ -130,6 +130,11 @@ class LoggingCog(commands.Cog):
             except discord.Forbidden:
                 pass
 
+        if kicked_by and kicked_by.id == member.guild.me.id:
+            # Über /kick ausgeführt - das Moderation-Cog postet dafür bereits
+            # ein eigenes (case-nummeriertes) Embed in MOD_LOG_CHANNEL_ID.
+            return
+
         if kicked_by:
             embed = discord.Embed(
                 title="👢 Mitglied gekickt",
@@ -168,6 +173,11 @@ class LoggingCog(commands.Cog):
                         break
             except discord.Forbidden:
                 pass
+
+        if banned_by and banned_by.id == guild.me.id:
+            # Über /ban ausgeführt - das Moderation-Cog postet dafür bereits
+            # ein eigenes (case-nummeriertes) Embed in MOD_LOG_CHANNEL_ID.
+            return
 
         embed = discord.Embed(
             title="🔨 Mitglied gebannt",

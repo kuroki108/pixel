@@ -110,6 +110,19 @@ CREATE TABLE IF NOT EXISTS ticket_counters (
     counter_key TEXT PRIMARY KEY,
     value       INTEGER NOT NULL DEFAULT 0
 );
+
+-- Moderation (modules/moderation/cog.py): ban/kick/timeout/warn-Historie pro User.
+CREATE TABLE IF NOT EXISTS mod_cases (
+    case_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id     INTEGER NOT NULL,
+    user_id      INTEGER NOT NULL,
+    moderator_id INTEGER NOT NULL,
+    type         TEXT NOT NULL,
+    reason       TEXT NOT NULL,
+    created_at   REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mod_cases_guild_user ON mod_cases (guild_id, user_id);
 """
 
 
@@ -536,3 +549,44 @@ class Database:
             "DELETE FROM birthday_calendar_messages WHERE channel_id = ?", (channel_id,)
         )
         await self.conn.commit()
+
+    # ---------- moderation cases ----------
+
+    async def add_mod_case(
+        self, guild_id: int, user_id: int, moderator_id: int, case_type: str, reason: str
+    ) -> tuple[int, float]:
+        """Legt einen neuen Moderations-Case an und gibt (case_id, created_at) zurück."""
+        created_at = time.time()
+        cur = await self.conn.execute(
+            """
+            INSERT INTO mod_cases (guild_id, user_id, moderator_id, type, reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (guild_id, user_id, moderator_id, case_type, reason, created_at),
+        )
+        await self.conn.commit()
+        return cur.lastrowid, created_at
+
+    async def get_user_mod_cases(self, guild_id: int, user_id: int) -> list[tuple[int, str, str, float]]:
+        """Liste von (case_id, type, reason, created_at), neueste zuerst."""
+        cur = await self.conn.execute(
+            """
+            SELECT case_id, type, reason, created_at FROM mod_cases
+            WHERE guild_id = ? AND user_id = ?
+            ORDER BY case_id DESC
+            """,
+            (guild_id, user_id),
+        )
+        return list(await cur.fetchall())
+
+    async def get_user_mod_case_counts(self, guild_id: int, user_id: int) -> dict[str, int]:
+        cur = await self.conn.execute(
+            "SELECT type, COUNT(*) FROM mod_cases WHERE guild_id = ? AND user_id = ? GROUP BY type",
+            (guild_id, user_id),
+        )
+        rows = await cur.fetchall()
+        counts = {"warn": 0, "timeout": 0, "kick": 0, "ban": 0}
+        for case_type, n in rows:
+            if case_type in counts:
+                counts[case_type] = n
+        return counts

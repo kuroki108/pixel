@@ -42,6 +42,8 @@ INITIAL_EXTENSIONS = [
     "modules.birthday",
     "modules.media_threads",
     "modules.lvl_system.cogs.leveling",
+    "modules.moderation.cog",
+    "modules.moderation.voice",
 ]
 
 intents = discord.Intents.default()

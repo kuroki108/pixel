@@ -3,5 +3,6 @@
 __pycache__/
 *.pyc
 modules/lvl_system/data/
+modules/modbot/data/
 /data/
 /.claude
