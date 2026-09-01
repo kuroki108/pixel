@@ -18,7 +18,6 @@ from modules.lvl_system.utils.rank_card import generate_rank_card
 log = logging.getLogger("leveling")
 
 LEVEL_ROLE_CHOICES_LIMIT = 25  # Discord-Limit für Autocomplete-Vorschläge
-DEFAULT_LEVELUP_TEXT = "{mention} hat soeben Level {level} erreicht! 🎉"
 
 VOICE_XP_CAP_MINUTES = 90  # 1,5h Voice-XP pro Tag
 VOICE_XP_CAP_COOLDOWN = timedelta(hours=24)
@@ -143,19 +142,24 @@ class Leveling(commands.Cog):
                 channel = configured
 
         if channel is not None:
-            text = DEFAULT_LEVELUP_TEXT.format(
-                mention=member.mention,
-                level=new_level,
-                user=member.display_name,
+            stats = await self.db.get_user(guild.id, member.id)
+            rank = await self.db.get_rank(guild.id, member.id)
+            avatar_bytes = await member.display_avatar.replace(size=256, format="png").read()
+            tag = f"#{member.discriminator}" if member.discriminator != "0" else ""
+
+            buf = await asyncio.to_thread(
+                generate_rank_card,
+                username=member.display_name,
+                discriminator_tag=tag,
+                avatar_bytes=avatar_bytes,
+                level=stats.level,
+                xp_in_level=stats.xp,
+                rank=rank,
+                total_xp=stats.total_xp,
             )
-            embed = discord.Embed(
-                title="Level Up!",
-                description=text,
-                color=discord.Color.from_rgb(255, 0, 170),
-            )
-            embed.set_thumbnail(url=member.display_avatar.url)
+            file = discord.File(buf, filename="levelup.png")
             try:
-                await channel.send(embed=embed)
+                await channel.send(content=f"🎉 {member.mention} ist jetzt **Level {new_level}**!", file=file)
             except discord.HTTPException:
                 log.warning("Konnte Levelup-Nachricht in Guild %s nicht senden", guild.id)
 
@@ -194,41 +198,6 @@ class Leveling(commands.Cog):
                 await member.remove_roles(*roles_to_remove, reason="Level-Belohnung ersetzt")
         except discord.Forbidden:
             log.warning("Fehlende Rechte für Rollenvergabe in Guild %s", guild.id)
-
-    # ---------------------------------------------------------------
-    # /rank
-    # ---------------------------------------------------------------
-
-    @app_commands.command(name="rank", description="Zeigt deine (oder eine fremde) Rank-Card an.")
-    @app_commands.describe(user="Optional: Rank-Card eines anderen Mitglieds anzeigen")
-    async def rank(self, interaction: discord.Interaction, user: discord.Member | None = None) -> None:
-        member = user or interaction.user
-        if member.bot:
-            await interaction.response.send_message("Bots haben keine Rank-Card. 🤖", ephemeral=True)
-            return
-
-        await interaction.response.defer()
-
-        stats = await self.db.get_user(interaction.guild_id, member.id)
-        rank = await self.db.get_rank(interaction.guild_id, member.id)
-
-        avatar_asset = member.display_avatar.replace(size=256, format="png")
-        avatar_bytes = await avatar_asset.read()
-
-        tag = f"#{member.discriminator}" if member.discriminator != "0" else ""
-
-        buf = await asyncio.to_thread(
-            generate_rank_card,
-            username=member.display_name,
-            discriminator_tag=tag,
-            avatar_bytes=avatar_bytes,
-            level=stats.level,
-            xp_in_level=stats.xp,
-            rank=rank,
-            total_xp=stats.total_xp,
-        )
-        file = discord.File(buf, filename="rank.png")
-        await interaction.followup.send(file=file)
 
     # ---------------------------------------------------------------
     # Admin: /xp add|remove|set|reset
