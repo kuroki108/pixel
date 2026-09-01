@@ -15,9 +15,9 @@ REFRESH_INTERVAL_MINUTES = 10
 
 CATEGORY_ORDER = ["level", "tictactoe", "guessing"]
 CATEGORY_TITLES = {
-    "level": "🏆 Level Leaderboard",
-    "tictactoe": "🎮 Tic-Tac-Toe Leaderboard",
-    "guessing": "🔢 Number-Guessing Leaderboard",
+    "level": "Level Leaderboard",
+    "tictactoe": "Tic-Tac-Toe Leaderboard",
+    "guessing": "Number-Guessing Leaderboard",
 }
 
 BG_TOP = (32, 12, 56)
@@ -33,8 +33,23 @@ MEDAL_COLORS = {0: (222, 188, 255), 1: (198, 150, 224), 2: (170, 112, 202)}
 EMBED_COLOR = discord.Color.from_rgb(*ACCENT)
 
 FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
-FONT_BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
-FONT_REGULAR = FONT_DIR / "DejaVuSans.ttf"
+
+# Reihenfolge: mitgelieferte DejaVu-Fonts (immer im Repo vorhanden, funktionieren
+# plattformunabhaengig) -> gaengige System-Fonts als zusaetzliche Kandidaten (falls
+# verfuegbar, z.B. fuer breitere Unicode-Abdeckung) -> PIL-Default-Bitmap-Font,
+# gleiches Prinzip wie onboarding.py's create_welcome_image.
+_FONT_CANDIDATES_BOLD = (
+    str(FONT_DIR / "DejaVuSans-Bold.ttf"),
+    r"C:\Windows\Fonts\arialbd.ttf",
+    r"C:\Windows\Fonts\segoeuib.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+)
+_FONT_CANDIDATES_REGULAR = (
+    str(FONT_DIR / "DejaVuSans.ttf"),
+    r"C:\Windows\Fonts\arial.ttf",
+    r"C:\Windows\Fonts\segoeui.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+)
 
 _font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
 
@@ -50,7 +65,16 @@ def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     key = ("bold" if bold else "regular", size)
     if key in _font_cache:
         return _font_cache[key]
-    font = ImageFont.truetype(str(FONT_BOLD if bold else FONT_REGULAR), size)
+
+    for candidate in (_FONT_CANDIDATES_BOLD if bold else _FONT_CANDIDATES_REGULAR):
+        try:
+            font = ImageFont.truetype(candidate, size)
+            _font_cache[key] = font
+            return font
+        except OSError:
+            continue
+
+    font = ImageFont.load_default()
     _font_cache[key] = font
     return font
 
@@ -131,10 +155,6 @@ def _finish(img: Image.Image) -> bytes:
 
 
 class LeaderboardView(discord.ui.View):
-    """Persistente ◀/▶-Navigation. Eine generische Instanz wird in bot.py über
-    bot.add_view() registriert (custom_id-Routing überlebt Neustarts); jede
-    tatsächlich gepostete/editierte Nachricht bekommt ihre eigene frisch gebaute
-    Instanz mit dem passenden Seiten-Label, siehe Leaderboard._build_page."""
 
     def __init__(self, db: Database, page: int = 0):
         super().__init__(timeout=None)
@@ -171,7 +191,6 @@ class LeaderboardView(discord.ui.View):
 def _build_embed() -> discord.Embed:
     embed = discord.Embed(color=EMBED_COLOR)
     embed.set_image(url="attachment://leaderboard.png")
-    embed.set_footer(text=f"Aktualisiert sich automatisch alle {REFRESH_INTERVAL_MINUTES} Minuten")
     return embed
 
 
