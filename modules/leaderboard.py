@@ -13,6 +13,13 @@ from modules.database import Database
 # Wie oft die live im Channel stehende Nachricht neu gerendert wird.
 REFRESH_INTERVAL_MINUTES = 10
 
+CATEGORY_ORDER = ["level", "tictactoe", "guessing"]
+CATEGORY_TITLES = {
+    "level": "🏆 Level Leaderboard",
+    "tictactoe": "🎮 Tic-Tac-Toe Leaderboard",
+    "guessing": "🔢 Number-Guessing Leaderboard",
+}
+
 BG_TOP = (32, 12, 56)
 BG_BOTTOM = (72, 20, 112)
 ACCENT = (155, 89, 182)
@@ -48,22 +55,15 @@ def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     return font
 
 
-def render_combined_leaderboard(sections: list[tuple[str, list[Entry]]]) -> bytes:
-    width = 1180
-    row_h = 96
-    row_gap = 14
-    padding = 44
-    section_header_h = 64
-    section_gap = 40
+def render_leaderboard_page(title: str, entries: list[Entry]) -> bytes:
+    width = 1400
+    row_h = 140
+    row_gap = 20
+    padding = 56
+    header_h = 170
 
-    def rows_for(entries: list[Entry]) -> int:
-        return max(1, len(entries))
-
-    height = padding
-    for _title, entries in sections:
-        n = rows_for(entries)
-        height += section_header_h + n * row_h + (n - 1) * row_gap
-    height += section_gap * (len(sections) - 1) + padding
+    n_rows = max(1, len(entries))
+    height = header_h + n_rows * row_h + (n_rows - 1) * row_gap + padding
 
     img = Image.new("RGB", (width, height), BG_TOP)
     draw = ImageDraw.Draw(img)
@@ -75,61 +75,160 @@ def render_combined_leaderboard(sections: list[tuple[str, list[Entry]]]) -> byte
         b = round(BG_TOP[2] + (BG_BOTTOM[2] - BG_TOP[2]) * t)
         draw.line([(0, y), (width, y)], fill=(r, g, b))
 
-    title_font = _load_font(38, bold=True)
-    rank_font = _load_font(30, bold=True)
-    name_font = _load_font(29, bold=True)
-    stat_font = _load_font(26, bold=True)
-    sub_font = _load_font(20)
-    empty_font = _load_font(24)
+    title_font = _load_font(56, bold=True)
+    rank_font = _load_font(42, bold=True)
+    name_font = _load_font(40, bold=True)
+    stat_font = _load_font(36, bold=True)
+    sub_font = _load_font(26)
+    empty_font = _load_font(30)
 
-    y = padding
-    for title, entries in sections:
-        draw.text((padding, y), title, font=title_font, fill=TEXT_LIGHT)
-        y += section_header_h - 10
-        draw.line([(padding, y), (width - padding, y)], fill=ACCENT, width=2)
-        y += 10
+    draw.text((padding, 40), title, font=title_font, fill=TEXT_LIGHT)
+    draw.line([(padding, header_h - 20), (width - padding, header_h - 20)], fill=ACCENT, width=3)
 
-        if not entries:
-            draw.text((padding + 12, y + row_h / 2 - 14), "Noch keine Daten", font=empty_font, fill=TEXT_MUTED)
-            y += row_h
-        else:
-            for idx, entry in enumerate(entries):
-                row_fill = ROW_TOP3 if idx < 3 else ROW
-                draw.rounded_rectangle([padding, y, width - padding, y + row_h], radius=20, fill=row_fill)
+    y = header_h
+    if not entries:
+        draw.text((padding + 14, y + row_h / 2 - 18), "Noch keine Daten", font=empty_font, fill=TEXT_MUTED)
+        return _finish(img)
 
-                badge_color = MEDAL_COLORS.get(idx, ACCENT)
-                cx, cy = padding + 56, y + row_h // 2
-                draw.ellipse([cx - 30, cy - 30, cx + 30, cy + 30], fill=badge_color)
-                rank_str = str(idx + 1)
-                rb = draw.textbbox((0, 0), rank_str, font=rank_font)
-                draw.text(
-                    (cx - (rb[2] - rb[0]) / 2, cy - (rb[3] - rb[1]) / 2 - rb[1]),
-                    rank_str,
-                    font=rank_font,
-                    fill=(30, 10, 45),
-                )
+    for idx, entry in enumerate(entries):
+        row_fill = ROW_TOP3 if idx < 3 else ROW
+        draw.rounded_rectangle([padding, y, width - padding, y + row_h], radius=26, fill=row_fill)
 
-                name_x = padding + 112
-                draw.text((name_x, y + 14), entry.name, font=name_font, fill=TEXT_LIGHT)
-                if entry.sub:
-                    draw.text((name_x, y + 56), entry.sub, font=sub_font, fill=TEXT_MUTED)
+        badge_color = MEDAL_COLORS.get(idx, ACCENT)
+        cx, cy = padding + 76, y + row_h // 2
+        draw.ellipse([cx - 42, cy - 42, cx + 42, cy + 42], fill=badge_color)
+        rank_str = str(idx + 1)
+        rb = draw.textbbox((0, 0), rank_str, font=rank_font)
+        draw.text(
+            (cx - (rb[2] - rb[0]) / 2, cy - (rb[3] - rb[1]) / 2 - rb[1]),
+            rank_str,
+            font=rank_font,
+            fill=(30, 10, 45),
+        )
 
-                sb = draw.textbbox((0, 0), entry.stat, font=stat_font)
-                stat_w = sb[2] - sb[0]
-                draw.text(
-                    (width - padding - 28 - stat_w, y + row_h / 2 - (sb[3] - sb[1]) / 2 - sb[1]),
-                    entry.stat,
-                    font=stat_font,
-                    fill=ACCENT_LIGHT,
-                )
-                y += row_h + row_gap
-            y -= row_gap
+        name_x = padding + 152
+        draw.text((name_x, y + 24), entry.name, font=name_font, fill=TEXT_LIGHT)
+        if entry.sub:
+            draw.text((name_x, y + 78), entry.sub, font=sub_font, fill=TEXT_MUTED)
 
-        y += section_gap
+        sb = draw.textbbox((0, 0), entry.stat, font=stat_font)
+        stat_w = sb[2] - sb[0]
+        draw.text(
+            (width - padding - 36 - stat_w, y + row_h / 2 - (sb[3] - sb[1]) / 2 - sb[1]),
+            entry.stat,
+            font=stat_font,
+            fill=ACCENT_LIGHT,
+        )
+        y += row_h + row_gap
 
+    return _finish(img)
+
+
+def _finish(img: Image.Image) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
+
+class LeaderboardView(discord.ui.View):
+    """Persistente ◀/▶-Navigation. Eine generische Instanz wird in bot.py über
+    bot.add_view() registriert (custom_id-Routing überlebt Neustarts); jede
+    tatsächlich gepostete/editierte Nachricht bekommt ihre eigene frisch gebaute
+    Instanz mit dem passenden Seiten-Label, siehe Leaderboard._build_page."""
+
+    def __init__(self, db: Database, page: int = 0):
+        super().__init__(timeout=None)
+        self.db = db
+        self.page_button.label = f"{page + 1}/{len(CATEGORY_ORDER)}"
+
+    async def _navigate(self, interaction: discord.Interaction, delta: int) -> None:
+        refs = await self.db.get_leaderboard_messages()
+        _message_id, current_page = refs.get(interaction.channel_id, (None, 0))
+        new_page = (current_page + delta) % len(CATEGORY_ORDER)
+
+        entries = await _entries_for(self.db, CATEGORY_ORDER[new_page], interaction.guild)
+        image_bytes = await asyncio.to_thread(render_leaderboard_page, CATEGORY_TITLES[CATEGORY_ORDER[new_page]], entries)
+        file = discord.File(io.BytesIO(image_bytes), filename="leaderboard.png")
+        embed = _build_embed()
+
+        view = LeaderboardView(self.db, page=new_page)
+        await interaction.response.edit_message(embed=embed, attachments=[file], view=view)
+        await self.db.set_leaderboard_page(interaction.channel_id, new_page)
+
+    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, custom_id="za_leaderboard_prev")
+    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        await self._navigate(interaction, -1)
+
+    @discord.ui.button(label="1/3", style=discord.ButtonStyle.secondary, disabled=True, custom_id="za_leaderboard_page")
+    async def page_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        pass
+
+    @discord.ui.button(label="▶", style=discord.ButtonStyle.secondary, custom_id="za_leaderboard_next")
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        await self._navigate(interaction, 1)
+
+
+def _build_embed() -> discord.Embed:
+    embed = discord.Embed(color=EMBED_COLOR)
+    embed.set_image(url="attachment://leaderboard.png")
+    embed.set_footer(text=f"Aktualisiert sich automatisch alle {REFRESH_INTERVAL_MINUTES} Minuten")
+    return embed
+
+
+async def _entries_for(db: Database, category_key: str, guild: discord.Guild) -> list[Entry]:
+    if category_key == "level":
+        return await _level_entries(db, guild)
+    if category_key == "tictactoe":
+        return await _ttt_entries(db, guild)
+    return await _guessing_entries(db, guild)
+
+
+async def _level_entries(db: Database, guild: discord.Guild) -> list[Entry]:
+    # Nur aktuelle Server-Mitglieder anzeigen (gleiche Logik wie das ehemalige
+    # /leaderboard in lvl_system/cogs/leveling.py).
+    batch_size = 25
+    offset = 0
+    ranked: list = []
+    while len(ranked) < 5:
+        batch = await db.get_leaderboard(guild.id, limit=batch_size, offset=offset)
+        if not batch:
+            break
+        for stats in batch:
+            member = guild.get_member(stats.user_id)
+            if member is not None:
+                ranked.append((member, stats))
+                if len(ranked) >= 5:
+                    break
+        offset += batch_size
+
+    return [
+        Entry(
+            name=member.display_name,
+            stat=f"Level {stats.level}",
+            sub=f"{stats.total_xp:,} XP".replace(",", "."),
+        )
+        for member, stats in ranked
+    ]
+
+
+async def _ttt_entries(db: Database, guild: discord.Guild) -> list[Entry]:
+    rows = await db.get_ttt_leaderboard(limit=5)
+    entries = []
+    for user_id, wins, losses, draws in rows:
+        member = guild.get_member(user_id)
+        name = member.display_name if member else f"Nutzer {user_id}"
+        entries.append(Entry(name=name, stat=f"{wins} Siege", sub=f"{losses}N · {draws}U"))
+    return entries
+
+
+async def _guessing_entries(db: Database, guild: discord.Guild) -> list[Entry]:
+    rows = await db.get_number_guessing_scores(limit=5)
+    entries = []
+    for user_id, points in rows:
+        member = guild.get_member(user_id)
+        name = member.display_name if member else f"Nutzer {user_id}"
+        entries.append(Entry(name=name, stat=f"{points} Punkt{'e' if points != 1 else ''}"))
+    return entries
 
 
 class Leaderboard(commands.Cog):
@@ -141,80 +240,28 @@ class Leaderboard(commands.Cog):
     def cog_unload(self) -> None:
         self.refresh_task.cancel()
 
-    async def _level_entries(self, guild: discord.Guild) -> list[Entry]:
-        # Nur aktuelle Server-Mitglieder anzeigen (gleiche Logik wie das
-        # ehemalige /leaderboard in lvl_system/cogs/leveling.py).
-        batch_size = 25
-        offset = 0
-        ranked: list = []
-        while len(ranked) < 5:
-            batch = await self.db.get_leaderboard(guild.id, limit=batch_size, offset=offset)
-            if not batch:
-                break
-            for stats in batch:
-                member = guild.get_member(stats.user_id)
-                if member is not None:
-                    ranked.append((member, stats))
-                    if len(ranked) >= 5:
-                        break
-            offset += batch_size
-
-        return [
-            Entry(
-                name=member.display_name,
-                stat=f"Level {stats.level}",
-                sub=f"{stats.total_xp:,} XP".replace(",", "."),
-            )
-            for member, stats in ranked
-        ]
-
-    async def _ttt_entries(self, guild: discord.Guild) -> list[Entry]:
-        rows = await self.db.get_ttt_leaderboard(limit=5)
-        entries = []
-        for user_id, wins, losses, draws in rows:
-            member = guild.get_member(user_id)
-            name = member.display_name if member else f"Nutzer {user_id}"
-            entries.append(Entry(name=name, stat=f"{wins} Siege", sub=f"{losses}N · {draws}U"))
-        return entries
-
-    async def _guessing_entries(self, guild: discord.Guild) -> list[Entry]:
-        rows = await self.db.get_number_guessing_scores(limit=5)
-        entries = []
-        for user_id, points in rows:
-            member = guild.get_member(user_id)
-            name = member.display_name if member else f"Nutzer {user_id}"
-            entries.append(Entry(name=name, stat=f"{points} Punkt{'e' if points != 1 else ''}"))
-        return entries
-
-    async def _build_message(self, guild: discord.Guild) -> tuple[discord.Embed, discord.File]:
-        sections = [
-            ("🏆 Level Leaderboard", await self._level_entries(guild)),
-            ("🎮 Tic-Tac-Toe Leaderboard", await self._ttt_entries(guild)),
-            ("🔢 Number-Guessing Leaderboard", await self._guessing_entries(guild)),
-        ]
-        image_bytes = await asyncio.to_thread(render_combined_leaderboard, sections)
+    async def _build_page(self, guild: discord.Guild, page: int) -> tuple[discord.Embed, discord.File, LeaderboardView]:
+        category = CATEGORY_ORDER[page]
+        entries = await _entries_for(self.db, category, guild)
+        image_bytes = await asyncio.to_thread(render_leaderboard_page, CATEGORY_TITLES[category], entries)
         file = discord.File(io.BytesIO(image_bytes), filename="leaderboard.png")
-
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.set_image(url="attachment://leaderboard.png")
-        embed.set_footer(text=f"Aktualisiert sich automatisch alle {REFRESH_INTERVAL_MINUTES} Minuten")
-        return embed, file
+        return _build_embed(), file, LeaderboardView(self.db, page=page)
 
     async def _refresh_messages(self) -> None:
         refs = await self.db.get_leaderboard_messages()
         if not refs:
             return
 
-        for channel_id, message_id in refs.items():
+        for channel_id, (message_id, page) in refs.items():
             channel = self.bot.get_channel(channel_id)
             if channel is None:
                 await self.db.remove_leaderboard_message(channel_id)
                 continue
 
-            embed, file = await self._build_message(channel.guild)
+            embed, file, view = await self._build_page(channel.guild, page)
             try:
                 message = await channel.fetch_message(message_id)
-                await message.edit(embed=embed, attachments=[file])
+                await message.edit(embed=embed, attachments=[file], view=view)
             except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 await self.db.remove_leaderboard_message(channel_id)
 
@@ -222,11 +269,11 @@ class Leaderboard(commands.Cog):
     async def leaderboard(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
 
-        embed, file = await self._build_message(interaction.guild)
-        await interaction.followup.send(embed=embed, file=file)
+        embed, file, view = await self._build_page(interaction.guild, page=0)
+        await interaction.followup.send(embed=embed, file=file, view=view)
 
         message = await interaction.original_response()
-        await self.db.set_leaderboard_message(message.channel.id, message.id)
+        await self.db.set_leaderboard_message(message.channel.id, message.id, page=0)
 
     @tasks.loop(minutes=REFRESH_INTERVAL_MINUTES)
     async def refresh_task(self) -> None:

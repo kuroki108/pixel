@@ -18,6 +18,7 @@ from config import ADMIN_ROLES
 from modules.ticket_system.views import all_persistent_views
 from modules.ticket_system.storage import store as ticket_store
 from modules.database import Database
+from modules.leaderboard import LeaderboardView
 from modules.selfroles import RoleView01, RoleView02, build_selfroles_embed
 from modules.self_cute_roles import cute_roles, build_cute_roles_embed
 
@@ -69,6 +70,7 @@ class ZenArcadeBot(commands.Bot):
         self.add_view(RoleView01())
         self.add_view(RoleView02())
         self.add_view(cute_roles())
+        self.add_view(LeaderboardView(self.db))
 
         for extension in INITIAL_EXTENSIONS:
             try:

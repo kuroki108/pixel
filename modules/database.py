@@ -131,11 +131,14 @@ CREATE TABLE IF NOT EXISTS ttt_stats (
     draws   INTEGER NOT NULL DEFAULT 0
 );
 
--- Kombiniertes Leaderboard (modules/leaderboard.py): ein live-aktualisiertes
--- Bild pro Channel, analog zu birthday_calendar_messages.
+-- Kombiniertes Leaderboard (modules/leaderboard.py): ein live-aktualisiertes,
+-- seitenweise durchblätterbares Bild pro Channel, analog zu birthday_calendar_messages.
+-- page = zuletzt angezeigter Kategorie-Index, damit der Auto-Refresh dieselbe
+-- Seite neu rendert statt auf Seite 1 zurückzuspringen.
 CREATE TABLE IF NOT EXISTS leaderboard_messages (
     channel_id INTEGER PRIMARY KEY,
-    message_id INTEGER NOT NULL
+    message_id INTEGER NOT NULL,
+    page       INTEGER NOT NULL DEFAULT 0
 );
 """
 
@@ -764,18 +767,25 @@ class Database:
 
     # ---------- combined leaderboard ----------
 
-    async def get_leaderboard_messages(self) -> dict[int, int]:
-        cur = await self.conn.execute("SELECT channel_id, message_id FROM leaderboard_messages")
+    async def get_leaderboard_messages(self) -> dict[int, tuple[int, int]]:
+        """Liste von channel_id -> (message_id, page)."""
+        cur = await self.conn.execute("SELECT channel_id, message_id, page FROM leaderboard_messages")
         rows = await cur.fetchall()
-        return {row[0]: row[1] for row in rows}
+        return {row[0]: (row[1], row[2]) for row in rows}
 
-    async def set_leaderboard_message(self, channel_id: int, message_id: int) -> None:
+    async def set_leaderboard_message(self, channel_id: int, message_id: int, page: int = 0) -> None:
         await self.conn.execute(
             """
-            INSERT INTO leaderboard_messages (channel_id, message_id) VALUES (?, ?)
-            ON CONFLICT (channel_id) DO UPDATE SET message_id = excluded.message_id
+            INSERT INTO leaderboard_messages (channel_id, message_id, page) VALUES (?, ?, ?)
+            ON CONFLICT (channel_id) DO UPDATE SET message_id = excluded.message_id, page = excluded.page
             """,
-            (channel_id, message_id),
+            (channel_id, message_id, page),
+        )
+        await self.conn.commit()
+
+    async def set_leaderboard_page(self, channel_id: int, page: int) -> None:
+        await self.conn.execute(
+            "UPDATE leaderboard_messages SET page = ? WHERE channel_id = ?", (page, channel_id)
         )
         await self.conn.commit()
 
