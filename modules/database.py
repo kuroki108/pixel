@@ -213,6 +213,7 @@ class Database:
         await conn.executescript(SCHEMA)
         await conn.commit()
         db = cls(conn)
+        await db._migrate_schema()
         await db._migrate_legacy_json()
         await db._migrate_free_games_db()
         await db._migrate_tictactoe_db()
@@ -220,6 +221,22 @@ class Database:
 
     async def close(self) -> None:
         await self.conn.close()
+
+    async def _migrate_schema(self) -> None:
+        """Nicht-destruktive ALTER-TABLE-Nachzügler für Spalten, die nach dem
+        ersten Deploy einer Tabelle hinzukamen -- CREATE TABLE IF NOT EXISTS in
+        SCHEMA fasst eine bereits existierende Tabelle nicht an, daher hier per
+        PRAGMA table_info geprüft und bei Bedarf per ALTER TABLE nachgezogen."""
+        await self._add_column_if_missing("leaderboard_messages", "page", "INTEGER NOT NULL DEFAULT 0")
+
+    async def _add_column_if_missing(self, table: str, column: str, ddl: str) -> None:
+        cur = await self.conn.execute(f"PRAGMA table_info({table})")
+        columns = {row[1] for row in await cur.fetchall()}
+        if column in columns:
+            return
+        await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+        await self.conn.commit()
+        log.info("Spalte '%s' zu '%s' hinzugefügt.", column, table)
 
     async def _migrate_legacy_json(self) -> None:
         data_dir = REPO_ROOT / "data"
