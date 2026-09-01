@@ -9,17 +9,15 @@ from discord.ext import commands
 try:
     from dotenv import load_dotenv
 
-    load_dotenv()  # lädt Variablen aus einer .env-Datei, falls vorhanden
+    load_dotenv()
 except ImportError:
-    pass  # python-dotenv ist optional; Umgebungsvariablen funktionieren auch ohne
+    pass  
 
 import config
 from config import ADMIN_ROLES
 from modules.ticket_system.views import all_persistent_views
 from modules.ticket_system.storage import store as ticket_store
 from modules.database import Database
-
-# Modules
 from modules.selfroles import RoleView01, RoleView02, build_selfroles_embed
 from modules.self_cute_roles import cute_roles, build_cute_roles_embed
 
@@ -28,10 +26,6 @@ ASSETS_DIR = BASE_DIR / "assets"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 log = logging.getLogger("zen_arcade")
-
-# -------------------------------------------------------
-# Bot Configuration
-# -------------------------------------------------------
 
 INITIAL_EXTENSIONS = [
     "modules.ticket_system.panels",
@@ -44,12 +38,17 @@ INITIAL_EXTENSIONS = [
     "modules.lvl_system.cogs.leveling",
     "modules.moderation.cog",
     "modules.moderation.voice",
+    "modules.free_games.cogs.checker",
+    "modules.free_games.cogs.tools",
+    "modules.free_games.cogs.settings",
+    "modules.tictactoe.cog",
+    "modules.leaderboard",
 ]
 
 intents = discord.Intents.default()
-intents.members = True  # nötig, um Mitglieder für Berechtigungen/Erwähnungen korrekt aufzulösen
-intents.message_content = True  # für Selfroles und andere Module nötig
-intents.voice_states = True  # nötig für Voice-XP im Leveling-System
+intents.members = True 
+intents.message_content = True 
+intents.voice_states = True 
 
 
 class ZenArcadeBot(commands.Bot):
@@ -58,27 +57,19 @@ class ZenArcadeBot(commands.Bot):
         self.db: Database | None = None
 
     async def setup_hook(self) -> None:
-        # Master-Datenbank verbinden (muss vor dem Laden der Extensions stehen,
-        # da leveling.py/counting.py/birthday.py/number_guessing.py's setup()
-        # alle bot.db lesen). Migriert dabei transparent alte JSON-Dateien und
-        # die alte Leveling-DB, siehe modules/database.py.
         self.db = await Database.connect()
         log.info("Master-Datenbank verbunden.")
 
-        # Ticket-Store an dieselbe Connection binden + alte tickets.json migrieren.
         ticket_store.bind(self.db.conn)
         await ticket_store.migrate_legacy_json()
 
-        # Ticket System Views
         for view in all_persistent_views():
             self.add_view(view)
 
-        # Selfrole Views
         self.add_view(RoleView01())
         self.add_view(RoleView02())
         self.add_view(cute_roles())
 
-        # Load all extensions
         for extension in INITIAL_EXTENSIONS:
             try:
                 await self.load_extension(extension)
@@ -86,7 +77,6 @@ class ZenArcadeBot(commands.Bot):
             except Exception as e:
                 log.error("Fehler beim Laden von Extension %s: %s", extension, e)
 
-        # Sync Slash-Commands
         if config.GUILD_ID:
             guild_obj = discord.Object(id=config.GUILD_ID)
             self.tree.copy_global_to(guild=guild_obj)
@@ -117,10 +107,6 @@ class ZenArcadeBot(commands.Bot):
         else:
             raise error
 
-
-# -------------------------------------------------------
-# Prefix-Commands
-# -------------------------------------------------------
 
 bot = ZenArcadeBot()
 
@@ -182,10 +168,6 @@ async def cute_role(ctx):
 
     await ctx.send(file=file, embed=build_cute_roles_embed(), view=cute_roles())
 
-
-# -------------------------------------------------------
-# Start
-# -------------------------------------------------------
 
 def main() -> None:
     if not config.BOT_TOKEN:

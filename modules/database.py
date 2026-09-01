@@ -1,21 +1,3 @@
-"""
-Master-SQLite-Datenbank für den gesamten Bot (ein Connection-Objekt, eine Datei).
-
-Historisch gewachsen aus der Leveling-DB (`modules/lvl_system/database.py`) —
-jedes Feature, das Zustand über Neustarts hinweg braucht, bekommt hier eine
-eigene Tabelle statt einer eigenen JSON-Datei. `ZenArcadeBot.setup_hook`
-verbindet genau eine Instanz (`bot.db`) **bevor** die Extensions geladen
-werden; jeder Cog, der Persistenz braucht, bekommt sie im `setup(bot)` als
-`bot.db` übergeben (siehe `lvl_system/cogs/leveling.py`, `counting.py`,
-`birthday.py`, `number_guessing.py`).
-
-Das Ticket-System (`modules/ticket_system/storage.py`) legt seine Tabellen
-ebenfalls hier an (siehe SCHEMA unten), verwaltet seine Queries aber selbst
-in einer eigenen `TicketStore`-Klasse, die sich per `store.bind(db.conn)`
-an dieselbe Connection hängt — das hält die Ticket-Logik in ihrer eigenen
-Schicht, ohne eine zweite Datenbankdatei zu brauchen.
-"""
-
 from __future__ import annotations
 
 import json
@@ -23,6 +5,7 @@ import logging
 import shutil
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import aiosqlite
@@ -32,9 +15,9 @@ log = logging.getLogger("database")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "data" / "pixel.sqlite3"
 
-# Alter Speicherort der Leveling-DB, bevor sie zur bot-weiten Master-DB wurde.
-# Wird beim ersten Start automatisch (kopierend, nicht verschiebend) übernommen.
 _LEGACY_LEVELING_DB_PATH = Path(__file__).resolve().parent / "lvl_system" / "data" / "leveling.sqlite3"
+_LEGACY_FREE_GAMES_DB_PATH = REPO_ROOT / "data" / "legacy_free_games.sqlite3"
+_LEGACY_TICTACTOE_DB_PATH = REPO_ROOT / "data" / "legacy_tictactoe.sqlite3"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -123,6 +106,37 @@ CREATE TABLE IF NOT EXISTS mod_cases (
 );
 
 CREATE INDEX IF NOT EXISTS idx_mod_cases_guild_user ON mod_cases (guild_id, user_id);
+
+-- Free Games (modules/free_games/): automatischer Epic/Steam-Freebie-Check.
+CREATE TABLE IF NOT EXISTS free_games_guild_settings (
+    guild_id  INTEGER PRIMARY KEY,
+    only_free INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS free_games_posted_deals (
+    deal_id   TEXT PRIMARY KEY,
+    posted_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS free_games_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Tic-Tac-Toe (modules/tictactoe/): Sieg/Niederlage/Unentschieden-Historie pro User.
+CREATE TABLE IF NOT EXISTS ttt_stats (
+    user_id INTEGER PRIMARY KEY,
+    wins    INTEGER NOT NULL DEFAULT 0,
+    losses  INTEGER NOT NULL DEFAULT 0,
+    draws   INTEGER NOT NULL DEFAULT 0
+);
+
+-- Kombiniertes Leaderboard (modules/leaderboard.py): ein live-aktualisiertes
+-- Bild pro Channel, analog zu birthday_calendar_messages.
+CREATE TABLE IF NOT EXISTS leaderboard_messages (
+    channel_id INTEGER PRIMARY KEY,
+    message_id INTEGER NOT NULL
+);
 """
 
 
@@ -134,6 +148,12 @@ class UserStats:
     total_xp: int
     level: int
     last_message_ts: int
+
+
+@dataclass
+class FreeGamesSettings:
+    guild_id: int
+    only_free: bool = True
 
 
 @dataclass
@@ -150,10 +170,6 @@ class GuildConfig:
 
 
 def _migrate_json_file(json_path: Path, marker: str) -> dict | None:
-    """Liest eine Legacy-JSON-Datei, falls vorhanden, und benennt sie nach
-    erfolgreichem Import um (`<name>.json.migrated`) statt sie zu löschen --
-    im Fehlerfall bleibt sie unangetastet liegen, es gehen also nie Daten
-    verloren, im schlimmsten Fall bleibt nur die Migration aus."""
     if not json_path.exists():
         return None
     try:
@@ -189,19 +205,20 @@ class Database:
 
         conn = await aiosqlite.connect(DB_PATH)
         await conn.execute("PRAGMA journal_mode=WAL;")
+        await conn.execute("PRAGMA synchronous=NORMAL;")
         await conn.execute("PRAGMA foreign_keys=ON;")
         await conn.executescript(SCHEMA)
         await conn.commit()
         db = cls(conn)
         await db._migrate_legacy_json()
+        await db._migrate_free_games_db()
+        await db._migrate_tictactoe_db()
         return db
 
     async def close(self) -> None:
         await self.conn.close()
 
     async def _migrate_legacy_json(self) -> None:
-        """Importiert alte JSON-Zustände einmalig in die jeweilige Tabelle,
-        aber nur wenn die Tabelle noch leer ist (idempotent bei jedem Neustart)."""
         data_dir = REPO_ROOT / "data"
 
         # counting_state.json war eine einzelne globale Zählung ohne Channel-Bezug;
@@ -282,6 +299,62 @@ class Database:
         _mark_migrated(path)
         log.info("birthday_calendar_messages.json migriert (%d Einträge).", len(rows))
 
+    async def _migrate_free_games_db(self) -> None:
+        if not _LEGACY_FREE_GAMES_DB_PATH.exists():
+            return
+        cur = await self.conn.execute("SELECT COUNT(*) FROM free_games_posted_deals")
+        (count,) = await cur.fetchone()
+        if count > 0:
+            return
+
+        try:
+            async with aiosqlite.connect(_LEGACY_FREE_GAMES_DB_PATH) as legacy:
+                deal_rows = await (await legacy.execute("SELECT deal_id, posted_at FROM posted_deals")).fetchall()
+                state_rows = await (await legacy.execute("SELECT key, value FROM bot_state")).fetchall()
+                settings_rows = await (await legacy.execute("SELECT guild_id, only_free FROM guild_settings")).fetchall()
+        except aiosqlite.Error as e:
+            log.warning("Konnte alte Free-Games-Datenbank nicht lesen (%s) -- Migration übersprungen.", e)
+            return
+
+        if deal_rows:
+            await self.conn.executemany(
+                "INSERT OR IGNORE INTO free_games_posted_deals (deal_id, posted_at) VALUES (?, ?)", deal_rows
+            )
+        if state_rows:
+            await self.conn.executemany(
+                "INSERT OR IGNORE INTO free_games_state (key, value) VALUES (?, ?)", state_rows
+            )
+        if settings_rows:
+            await self.conn.executemany(
+                "INSERT OR IGNORE INTO free_games_guild_settings (guild_id, only_free) VALUES (?, ?)", settings_rows
+            )
+        await self.conn.commit()
+        _mark_migrated(_LEGACY_FREE_GAMES_DB_PATH)
+        log.info("Alte Free-Games-Datenbank migriert (%d gepostete Deals).", len(deal_rows))
+
+    async def _migrate_tictactoe_db(self) -> None:
+        if not _LEGACY_TICTACTOE_DB_PATH.exists():
+            return
+        cur = await self.conn.execute("SELECT COUNT(*) FROM ttt_stats")
+        (count,) = await cur.fetchone()
+        if count > 0:
+            return
+
+        try:
+            async with aiosqlite.connect(_LEGACY_TICTACTOE_DB_PATH) as legacy:
+                rows = await (await legacy.execute("SELECT user_id, wins, losses, draws FROM ttt_stats")).fetchall()
+        except aiosqlite.Error as e:
+            log.warning("Konnte alte Tic-Tac-Toe-Datenbank nicht lesen (%s) -- Migration übersprungen.", e)
+            return
+
+        if rows:
+            await self.conn.executemany(
+                "INSERT OR IGNORE INTO ttt_stats (user_id, wins, losses, draws) VALUES (?, ?, ?, ?)", rows
+            )
+            await self.conn.commit()
+        _mark_migrated(_LEGACY_TICTACTOE_DB_PATH)
+        log.info("Alte Tic-Tac-Toe-Datenbank migriert (%d Spieler).", len(rows))
+
     # ---------- users (Leveling) ----------
 
     async def get_user(self, guild_id: int, user_id: int) -> UserStats:
@@ -312,11 +385,22 @@ class Database:
         )
         await self.conn.commit()
 
-    async def set_last_message_ts(self, guild_id: int, user_id: int, ts: int | None = None) -> None:
+    async def set_user_xp_and_last_message_ts(
+        self, guild_id: int, user_id: int, xp: int, total_xp: int, level: int, ts: int | None = None
+    ) -> None:
+        """Aktualisiert XP und Cooldown-Timestamp in einem Write/Commit statt zwei --
+        für den Text-XP-Hotpath in on_message (jede nicht auf Cooldown liegende
+        Nachricht im ganzen Server), um die Commit-Rate dort zu halbieren."""
         ts = ts if ts is not None else int(time.time())
         await self.conn.execute(
-            "UPDATE users SET last_message_ts = ? WHERE guild_id = ? AND user_id = ?",
-            (ts, guild_id, user_id),
+            """
+            INSERT INTO users (guild_id, user_id, xp, total_xp, level, last_message_ts)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (guild_id, user_id)
+            DO UPDATE SET xp = excluded.xp, total_xp = excluded.total_xp,
+                        level = excluded.level, last_message_ts = excluded.last_message_ts
+            """,
+            (guild_id, user_id, xp, total_xp, level, ts),
         )
         await self.conn.commit()
 
@@ -397,7 +481,7 @@ class Database:
         cur = await self.conn.execute(
             """
             SELECT guild_id, xp_min, xp_max, cooldown_seconds, voice_xp_per_min,
-                   voice_xp_enabled, levelup_channel_id, levelup_message, stack_roles
+                    voice_xp_enabled, levelup_channel_id, levelup_message, stack_roles
             FROM guild_config WHERE guild_id = ?
             """,
             (guild_id,),
@@ -590,3 +674,113 @@ class Database:
             if case_type in counts:
                 counts[case_type] = n
         return counts
+
+    # ---------- free games ----------
+
+    async def get_free_games_settings(self, guild_id: int) -> FreeGamesSettings:
+        cur = await self.conn.execute(
+            "SELECT guild_id, only_free FROM free_games_guild_settings WHERE guild_id = ?",
+            (guild_id,),
+        )
+        row = await cur.fetchone()
+        if row is None:
+            return FreeGamesSettings(guild_id=guild_id, only_free=True)
+        return FreeGamesSettings(guild_id=row[0], only_free=bool(row[1]))
+
+    async def set_free_games_only_free(self, guild_id: int, only_free: bool) -> None:
+        await self.conn.execute(
+            """
+            INSERT INTO free_games_guild_settings (guild_id, only_free) VALUES (?, ?)
+            ON CONFLICT (guild_id) DO UPDATE SET only_free = excluded.only_free
+            """,
+            (guild_id, int(only_free)),
+        )
+        await self.conn.commit()
+
+    async def is_free_game_deal_posted(self, deal_id: str) -> bool:
+        cur = await self.conn.execute(
+            "SELECT 1 FROM free_games_posted_deals WHERE deal_id = ?", (deal_id,)
+        )
+        return (await cur.fetchone()) is not None
+
+    async def mark_free_game_deal_posted(self, deal_id: str) -> None:
+        await self.conn.execute(
+            "INSERT OR IGNORE INTO free_games_posted_deals (deal_id, posted_at) VALUES (?, ?)",
+            (deal_id, datetime.now(timezone.utc).isoformat()),
+        )
+        await self.conn.commit()
+
+    async def get_free_games_state(self, key: str) -> str | None:
+        cur = await self.conn.execute("SELECT value FROM free_games_state WHERE key = ?", (key,))
+        row = await cur.fetchone()
+        return row[0] if row else None
+
+    async def set_free_games_state(self, key: str, value: str) -> None:
+        await self.conn.execute(
+            "INSERT INTO free_games_state (key, value) VALUES (?, ?) "
+            "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        await self.conn.commit()
+
+    # ---------- tic-tac-toe ----------
+
+    async def get_ttt_stats(self, user_id: int) -> tuple[int, int, int]:
+        """Gibt (wins, losses, draws) zurück, (0, 0, 0) falls noch keine Spiele."""
+        cur = await self.conn.execute(
+            "SELECT wins, losses, draws FROM ttt_stats WHERE user_id = ?", (user_id,)
+        )
+        row = await cur.fetchone()
+        return row if row else (0, 0, 0)
+
+    async def record_ttt_result(
+        self, *, winner_id: int | None, loser_id: int | None, draw_ids: tuple[int, ...] = ()
+    ) -> None:
+        if winner_id is not None:
+            await self._bump_ttt_stat(winner_id, "wins")
+        if loser_id is not None:
+            await self._bump_ttt_stat(loser_id, "losses")
+        for uid in draw_ids:
+            await self._bump_ttt_stat(uid, "draws")
+        await self.conn.commit()
+
+    async def _bump_ttt_stat(self, user_id: int, column: str) -> None:
+        assert column in {"wins", "losses", "draws"}
+        await self.conn.execute(
+            f"""
+            INSERT INTO ttt_stats (user_id, {column}) VALUES (?, 1)
+            ON CONFLICT (user_id) DO UPDATE SET {column} = {column} + 1
+            """,
+            (user_id,),
+        )
+
+    async def get_ttt_leaderboard(self, limit: int = 5) -> list[tuple[int, int, int, int]]:
+        """Liste von (user_id, wins, losses, draws), absteigend nach Siegen sortiert."""
+        cur = await self.conn.execute(
+            "SELECT user_id, wins, losses, draws FROM ttt_stats ORDER BY wins DESC LIMIT ?",
+            (limit,),
+        )
+        return list(await cur.fetchall())
+
+    # ---------- combined leaderboard ----------
+
+    async def get_leaderboard_messages(self) -> dict[int, int]:
+        cur = await self.conn.execute("SELECT channel_id, message_id FROM leaderboard_messages")
+        rows = await cur.fetchall()
+        return {row[0]: row[1] for row in rows}
+
+    async def set_leaderboard_message(self, channel_id: int, message_id: int) -> None:
+        await self.conn.execute(
+            """
+            INSERT INTO leaderboard_messages (channel_id, message_id) VALUES (?, ?)
+            ON CONFLICT (channel_id) DO UPDATE SET message_id = excluded.message_id
+            """,
+            (channel_id, message_id),
+        )
+        await self.conn.commit()
+
+    async def remove_leaderboard_message(self, channel_id: int) -> None:
+        await self.conn.execute(
+            "DELETE FROM leaderboard_messages WHERE channel_id = ?", (channel_id,)
+        )
+        await self.conn.commit()

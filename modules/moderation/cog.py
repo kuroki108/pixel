@@ -23,7 +23,6 @@ class Moderation(commands.Cog):
         )
         return utils.build_case_embed(case_id, case_type, reason, created_at, user, interaction.user)
 
-    # ---------------------------------------------------------- /ban
     @app_commands.command(name="ban", description="Bannt einen User vom Server")
     @app_commands.describe(
         user="Der zu bannende User",
@@ -50,7 +49,6 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(embed=embed)
         await utils.send_log(self.bot, embed)
 
-    # ---------------------------------------------------------- /kick
     @app_commands.command(name="kick", description="Kickt einen User vom Server")
     @app_commands.describe(user="Der zu kickende User", reason="Grund für den Kick")
     @app_commands.checks.has_permissions(kick_members=True)
@@ -67,7 +65,6 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(embed=embed)
         await utils.send_log(self.bot, embed)
 
-    # ------------------------------------------------------- /timeout
     @app_commands.command(name="timeout", description="Timeoutet einen User für eine bestimmte Dauer")
     @app_commands.describe(
         user="Der zu timeoutende User",
@@ -95,7 +92,6 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(embed=embed)
         await utils.send_log(self.bot, embed)
 
-    # ---------------------------------------------------------- /warn
     @app_commands.command(name="warn", description="Verwarnt einen User")
     @app_commands.describe(user="Der zu verwarnende User", reason="Grund für die Verwarnung")
     @app_commands.checks.has_permissions(moderate_members=True)
@@ -115,7 +111,6 @@ class Moderation(commands.Cog):
         except discord.Forbidden:
             pass  # DMs geschlossen - kein Problem, Warn ist trotzdem gespeichert
 
-    # ------------------------------------------------------- /user info
     user_group = app_commands.Group(name="user", description="User-bezogene Befehle")
 
     @user_group.command(name="info", description="Zeigt Account- und Moderationsinfos zu einem User")

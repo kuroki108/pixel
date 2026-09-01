@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import random
 import time
@@ -61,8 +62,7 @@ class Leveling(commands.Cog):
         new_xp, new_level, levelups = add_xp(stats.xp, stats.level, gained)
         new_total = stats.total_xp + gained
 
-        await self.db.set_user_xp(guild_id, user_id, new_xp, new_total, new_level)
-        await self.db.set_last_message_ts(guild_id, user_id, now)
+        await self.db.set_user_xp_and_last_message_ts(guild_id, user_id, new_xp, new_total, new_level, now)
 
         if levelups > 0:
             await self._handle_levelup(message.guild, message.author, new_level, message.channel)
@@ -217,7 +217,8 @@ class Leveling(commands.Cog):
 
         tag = f"#{member.discriminator}" if member.discriminator != "0" else ""
 
-        buf = generate_rank_card(
+        buf = await asyncio.to_thread(
+            generate_rank_card,
             username=member.display_name,
             discriminator_tag=tag,
             avatar_bytes=avatar_bytes,
@@ -228,37 +229,6 @@ class Leveling(commands.Cog):
         )
         file = discord.File(buf, filename="rank.png")
         await interaction.followup.send(file=file)
-
-    # ---------------------------------------------------------------
-    # /leaderboard
-    # ---------------------------------------------------------------
-
-    @app_commands.command(name="leaderboard", description="Zeigt die Top-Mitglieder nach XP.")
-    async def leaderboard(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
-
-        offset = 0
-        entries = await self.db.get_leaderboard(interaction.guild_id, limit=10, offset=offset)
-
-        if not entries:
-            await interaction.followup.send("Noch keine XP-Daten auf dieser Seite.")
-            return
-
-        lines = []
-        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
-        for idx, stats in enumerate(entries, start=offset + 1):
-            member = interaction.guild.get_member(stats.user_id)
-            name = member.display_name if member else f"Nutzer {stats.user_id}"
-            prefix = medals.get(idx, f"`#{idx}`")
-            lines.append(f"{prefix} **{name}** — Level {stats.level} ({stats.total_xp:,} XP)".replace(",", "."))
-
-        embed = discord.Embed(
-            title=f"🏆 Leaderboard — {interaction.guild.name}",
-            description="\n".join(lines),
-            color=discord.Color.from_rgb(0, 229, 255),
-        )
-        embed.set_footer(text="Seite 1")
-        await interaction.followup.send(embed=embed)
 
     # ---------------------------------------------------------------
     # Admin: /xp add|remove|set|reset

@@ -9,7 +9,6 @@ class Voice(commands.Cog):
 
     vc_group = app_commands.Group(name="vc", description="Voice-Moderationsbefehle")
 
-    # ---------------------------------------------------------- /vc move
     @vc_group.command(name="move", description="Verschiebt einen User in einen anderen Voice-Channel")
     @app_commands.describe(user="Der zu verschiebende User", channel="Ziel-Voice-Channel")
     @app_commands.checks.has_permissions(move_members=True)
@@ -20,7 +19,6 @@ class Voice(commands.Cog):
         await user.move_to(channel)
         await interaction.response.send_message(f"➡️ {user.mention} wurde nach {channel.mention} verschoben.")
 
-    # ---------------------------------------------------- /vc disconnect
     @vc_group.command(name="disconnect", description="Trennt einen User aus dem Voice-Channel")
     @app_commands.describe(user="Der zu trennende User")
     @app_commands.checks.has_permissions(move_members=True)
@@ -31,7 +29,6 @@ class Voice(commands.Cog):
         await user.move_to(None)
         await interaction.response.send_message(f"🔌 {user.mention} wurde aus dem Voice-Channel getrennt.")
 
-    # ---------------------------------------------------------- /vc mute
     @vc_group.command(name="mute", description="Server-mutet einen User im Voice-Channel")
     @app_commands.describe(user="Der zu mutende User")
     @app_commands.checks.has_permissions(mute_members=True)
@@ -39,7 +36,6 @@ class Voice(commands.Cog):
         await user.edit(mute=True)
         await interaction.response.send_message(f"🔇 {user.mention} wurde gemuted.")
 
-    # -------------------------------------------------------- /vc unmute
     @vc_group.command(name="unmute", description="Hebt den Server-Mute eines Users auf")
     @app_commands.describe(user="Der zu entmutende User")
     @app_commands.checks.has_permissions(mute_members=True)
@@ -47,7 +43,6 @@ class Voice(commands.Cog):
         await user.edit(mute=False)
         await interaction.response.send_message(f"🔊 {user.mention} wurde entmuted.")
 
-    # ------------------------------------------------------- /vc muteall
     @vc_group.command(name="muteall", description="Muted alle User in einem Voice-Channel")
     @app_commands.describe(channel="Der Voice-Channel")
     @app_commands.checks.has_permissions(mute_members=True)
@@ -64,7 +59,6 @@ class Voice(commands.Cog):
                 continue
         await interaction.followup.send(f"🔇 {count} User in {channel.mention} wurden gemuted.")
 
-    # ----------------------------------------------------- /vc unmuteall
     @vc_group.command(name="unmuteall", description="Entmuted alle User in einem Voice-Channel")
     @app_commands.describe(channel="Der Voice-Channel")
     @app_commands.checks.has_permissions(mute_members=True)
@@ -79,7 +73,6 @@ class Voice(commands.Cog):
                 continue
         await interaction.followup.send(f"🔊 {count} User in {channel.mention} wurden entmuted.")
 
-    # ------------------------------------------------------- /vc moveall
     @vc_group.command(name="moveall", description="Verschiebt alle User aus einem Voice-Channel in einen anderen")
     @app_commands.describe(channel="Quell-Voice-Channel", ziel="Ziel-Voice-Channel")
     @app_commands.checks.has_permissions(move_members=True)

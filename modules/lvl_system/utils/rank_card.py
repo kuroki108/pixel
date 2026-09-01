@@ -68,7 +68,6 @@ def generate_rank_card(
     base = Image.new("RGB", (WIDTH, HEIGHT), BG_DARK)
     draw = ImageDraw.Draw(base)
 
-    # Panel mit Neon-Rahmen
     panel_box = (10, 10, WIDTH - 10, HEIGHT - 10)
     draw.rounded_rectangle(panel_box, radius=24, fill=BG_PANEL, outline=NEON_CYAN, width=3)
     draw.rounded_rectangle(
@@ -76,13 +75,11 @@ def generate_rank_card(
         radius=22, outline=NEON_MAGENTA, width=1,
     )
 
-    # Avatar (Kreis)
     avatar_size = 170
     avatar = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA").resize((avatar_size, avatar_size))
     mask = Image.new("L", (avatar_size, avatar_size), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, avatar_size, avatar_size), fill=255)
     avatar_pos = (48, (HEIGHT - avatar_size) // 2)
-    # Neon-Ring um den Avatar
     ring_pad = 6
     draw.ellipse(
         (
@@ -104,7 +101,6 @@ def generate_rank_card(
     name_w = draw.textlength(username, font=name_font)
     draw.text((text_x + name_w + 10, 55), discriminator_tag, font=tag_font, fill=TEXT_MUTED)
 
-    # Rechts oben: Rang & Level
     rank_text = f"RANG #{rank}"
     level_text = f"LEVEL {level}"
     rank_w = draw.textlength(rank_text, font=big_font)
@@ -112,7 +108,6 @@ def generate_rank_card(
     draw.text((WIDTH - 40 - level_w, 40), level_text, font=big_font, fill=NEON_MAGENTA)
     draw.text((WIDTH - 40 - rank_w, 78), rank_text, font=label_font, fill=NEON_CYAN)
 
-    # Progress-Bar: Hintergrund-Leiste + Neon-Gradient-Füllung
     bar_box = (text_x, 150, WIDTH - 40, 178)
     bar_radius = (bar_box[3] - bar_box[1]) // 2
     draw.rounded_rectangle(bar_box, radius=bar_radius, fill=(35, 30, 60))

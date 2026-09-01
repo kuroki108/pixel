@@ -12,9 +12,6 @@ from modules.ticket_system.modals import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Panel: Support
-# ---------------------------------------------------------------------------
 class SupportPanelView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
@@ -52,9 +49,6 @@ class SupportPanelView(discord.ui.View):
         await interaction.followup.send(f"✅ Dein Ticket wurde erstellt: {channel.mention}", ephemeral=True)
 
 
-# ---------------------------------------------------------------------------
-# Panel: Bewerbungen
-# ---------------------------------------------------------------------------
 class ApplicationPanelView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
@@ -151,8 +145,6 @@ class TicketControlView(discord.ui.View):
             return None
         return ticket
 
-    
-    # -- Add user ------------------------------------------------------------
     @discord.ui.button(label="Add User", emoji=config.EMOJI_ADD_USER, style=discord.ButtonStyle.success, custom_id="za_adduser", row=1)
     async def add_user(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         ticket = await self._get_ticket_or_warn(interaction)
@@ -165,7 +157,6 @@ class TicketControlView(discord.ui.View):
             "Wähle den Nutzer aus, der hinzugefügt werden soll:", view=_AddUserSelectView(interaction.channel.id), ephemeral=True
         )
 
-    # -- Remove user ---------------------------------------------------------
     @discord.ui.button(label="Remove User", emoji=config.EMOJI_REMOVE_USER, style=discord.ButtonStyle.secondary, custom_id="za_removeuser", row=1)
     async def remove_user(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         ticket = await self._get_ticket_or_warn(interaction)
@@ -181,7 +172,6 @@ class TicketControlView(discord.ui.View):
             "Wähle den Nutzer aus, der entfernt werden soll:", view=_RemoveUserSelectView(interaction.channel.id), ephemeral=True
         )
 
-    # -- Delete ----------------------------------------------------------------
     @discord.ui.button(label="Delete", emoji=config.EMOJI_DELETE, style=discord.ButtonStyle.danger, custom_id="za_delete", row=1)
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         ticket = await self._get_ticket_or_warn(interaction)

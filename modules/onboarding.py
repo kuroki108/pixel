@@ -23,9 +23,6 @@ class Onboarding(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         await self._assign_roles(member)
 
-    # ------------------------------------------------------------------ #
-    # Rollenvergabe
-    # ------------------------------------------------------------------ #
     async def _assign_roles(self, member: discord.Member) -> None:
         if not ROLE_IDS:
             logger.warning(
@@ -61,10 +58,6 @@ class Onboarding(commands.Cog):
         except discord.HTTPException as exc:
             logger.error("Fehler beim Vergeben der Rollen an %s: %s", member, exc)
 
-    # ------------------------------------------------------------------ #
-    # Willkommensnachricht
-    # ------------------------------------------------------------------ #
-
 
 class WelcomeImageCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -82,6 +75,7 @@ class WelcomeImageCog(commands.Cog):
         self,
         avatar_bytes: bytes,
         username: str,
+        guild: discord.Guild,
         background_path: str | None = None,
         font_path: str | None = None,
     ) -> io.BytesIO:
@@ -148,8 +142,8 @@ class WelcomeImageCog(commands.Cog):
                     continue
             return ImageFont.load_default()
 
-        font_title = load_font(60)
-        font_welcome = load_font(38)
+        font_title = load_font(53)
+        font_welcome = load_font(35)
         font_subtitle = load_font(30)
         font_text = load_font(30)
 
@@ -157,10 +151,10 @@ class WelcomeImageCog(commands.Cog):
 
         draw.text((text_x, avatar_y), username, font=font_title, fill=(0, 255, 255))
         draw.text((text_x, avatar_y + 80), "HERZLICH WILLKOMMEN", font=font_welcome, fill=(255, 0, 255))
-        draw.text((text_x, avatar_y + 130), "Bei Zen Arcade", font=font_subtitle, fill=(0, 255, 255))
+        draw.text((text_x, avatar_y + 130), "in der Arcade", font=font_subtitle, fill=(0, 255, 255))
 
-        greeting = f"Wir freuen uns, dich hier zu haben!\n"
-        draw.text((text_x, avatar_y + 190), greeting, font=font_text, fill=(230, 230, 230))
+        member_count = guild.member_count
+        draw.text((text_x, avatar_y + 190), f"Du bist der {member_count}. Member", font=font_text, fill=(230, 230, 230))
 
         buffer = io.BytesIO()
         background.save(buffer, format="PNG")
@@ -178,7 +172,7 @@ class WelcomeImageCog(commands.Cog):
             return
 
         avatar_bytes = await member.display_avatar.replace(size=256, format="png").read()
-        image_buffer = await asyncio.to_thread(self.create_welcome_image, avatar_bytes, member.display_name)
+        image_buffer = await asyncio.to_thread(self.create_welcome_image, avatar_bytes, member.display_name, member.guild)
         file = discord.File(fp=image_buffer, filename="welcome.png")
 
         await channel.send(file=file)
@@ -186,4 +180,3 @@ class WelcomeImageCog(commands.Cog):
 async def setup(bot: commands.Bot):
     await bot.add_cog(Onboarding(bot))
     await bot.add_cog(WelcomeImageCog(bot))
-    

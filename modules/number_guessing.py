@@ -23,10 +23,6 @@ class NumberGuessing(commands.Cog):
         if self.timeout_task and not self.timeout_task.done():
             self.timeout_task.cancel()
 
-    # ---------------------------------------------------------------
-    # /number_guessing
-    # ---------------------------------------------------------------
-
     @app_commands.command(
         name="number_guessing",
         description="Starte ein Number-Guessing-Spiel."
@@ -89,10 +85,6 @@ class NumberGuessing(commands.Cog):
         except discord.HTTPException:
             pass
 
-    # ---------------------------------------------------------------
-    # Rate-Verarbeitung
-    # ---------------------------------------------------------------
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or self.game is None:
@@ -140,38 +132,6 @@ class NumberGuessing(commands.Cog):
             embed.add_field(name="Punkt", value="❌ Kein Punkt (mehr als 7 Versuche gebraucht)", inline=False)
 
         await message.reply(embed=embed)
-
-    # ---------------------------------------------------------------
-    # /number_score
-    # ---------------------------------------------------------------
-
-    @app_commands.command(
-        name="number_score",
-        description="Zeigt das Number-Guessing-Leaderboard."
-    )
-    async def number_score(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-
-        ranked = await self.db.get_number_guessing_scores(limit=10)
-        if not ranked:
-            await interaction.followup.send("Noch keine Punkte vergeben.")
-            return
-
-        lines = []
-        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
-        for idx, (user_id, points) in enumerate(ranked, start=1):
-            member = interaction.guild.get_member(user_id) if interaction.guild else None
-            name = member.display_name if member else f"Nutzer {user_id}"
-            prefix = medals.get(idx, f"`#{idx}`")
-            lines.append(f"{prefix} **{name}** — {points} Punkt{'e' if points != 1 else ''}")
-
-        embed = discord.Embed(
-            title="🔢 Number-Guessing-Leaderboard",
-            description="\n".join(lines),
-            color=discord.Color.from_rgb(0, 229, 255)
-        )
-        embed.set_footer(text="Seite 1")
-        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):

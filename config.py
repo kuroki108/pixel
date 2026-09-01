@@ -90,6 +90,7 @@ SELFIE_CHANNEL_ID_1: int = 1525603629321683005
 # In diesem Channel wird kein Attachment verlangt (reiner Text erlaubt),
 # aber trotzdem unter jeder Nachricht ein Thread erstellt.
 VORSTELLUNG_CHANNEL_ID_1: int = 1525603629321683006
+QOTD_CHANNEL_ID: int = 1544341620542017646  # Question of the Day
 
 # -------------------------------------------------------
 # Leveling (modules/lvl_system/cogs/leveling.py)
@@ -98,3 +99,14 @@ VORSTELLUNG_CHANNEL_ID_1: int = 1525603629321683006
 # Channels, in denen keine Text-/Voice-XP vergeben wird.
 NO_TEXT_XP_CHANNEL_IDS: set[int] = {1525603629548179608, 1539262663404683384}
 NO_VOICE_XP_CHANNEL_IDS: set[int] = {1525603629749240071, 1525603629929599151}
+
+# -------------------------------------------------------
+# Free Games (modules/free_games/)
+# -------------------------------------------------------
+
+FREEGAMES_CHANNEL_ID: int = 1544301732463382599
+
+# Rolle, die bei neuen automatisch geposteten Angeboten gepingt wird.
+FREEGAMES_PING_ROLE_ID: int = 1544301924973674578
+
+FREEGAMES_CHECK_INTERVAL_MINUTES: int = 30

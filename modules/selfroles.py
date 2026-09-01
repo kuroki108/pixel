@@ -1,9 +1,5 @@
-# Selfrole System / Dropdown Menu
 import discord
 
-# -------------------------------------------------------
-# Embed Constants
-# -------------------------------------------------------
 EMBED_IMAGE_URL = "attachment://selfroles-bg.gif"
 EMBED_COLOR = discord.Color.purple()
 EMBED_TITLE = "𝐒𝐄𝐋𝐅-𝐑𝐎𝐋𝐄𝐒 🌂"
@@ -15,7 +11,6 @@ EMBED_DESC = (
 
 
 def build_selfroles_embed() -> discord.Embed:
-    """Builds the selfroles embed."""
     embed = discord.Embed(title=EMBED_TITLE, description=EMBED_DESC, color=EMBED_COLOR)
     embed.set_image(url=EMBED_IMAGE_URL)
     return embed
