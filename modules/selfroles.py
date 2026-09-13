@@ -173,7 +173,7 @@ class PingRoles(RoleSelect):
             custom_id="select_ping",
             placeholder="Ping",
             min_values=0,
-            max_values=6,
+            max_values=8,
             options=[
                 discord.SelectOption(label="Bump",                              value="1525603628256329916"),
                 discord.SelectOption(label="Umfragen",                          value="1525603628256329915"),
@@ -181,6 +181,8 @@ class PingRoles(RoleSelect):
                 discord.SelectOption(label="Giveaways",                         value="1525603628256329913"),
                 discord.SelectOption(label="Events",                            value="1525603628256329912"),
                 discord.SelectOption(label="Dead Chat",                         value="1525603628256329910"),
+                discord.SelectOption(label="free-games",                        value="1544301924973674578"),
+                discord.SelectOption(label="question of the day",               value="1548818704312176754")
             ],
         )
 
