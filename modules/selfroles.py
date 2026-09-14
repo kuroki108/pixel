@@ -4,9 +4,9 @@ EMBED_IMAGE_URL = "attachment://selfroles-bg.gif"
 EMBED_COLOR = discord.Color.purple()
 EMBED_TITLE = "𝐒𝐄𝐋𝐅-𝐑𝐎𝐋𝐄𝐒 🌂"
 EMBED_DESC = (
-    "H𝗂𝖾𝗋 𝗄𝖆𝗇𝗇𝗌𝗍 𝖽𝗎 𝖽𝗂𝗋 𝗆𝗂𝗍 𝖾𝗂𝗇𝖾𝗆 𝗄𝗅𝗂𝖈𝗄 𝖽𝖾𝗂𝗇𝖊 𝗋𝗈𝗅𝗅𝖊𝗇 𝖺𝗎𝗌𝗐ä𝗁𝗅𝖊𝗇!\n"
-    "Wä𝗁𝗅𝖊 𝗓.𝖇. 𝖽𝖾𝗂𝗇 𝖺𝗅𝗍𝖊𝗋, 𝖽𝖊𝗂𝗇𝖆 𝗅𝖎𝖊𝖇𝖑𝖎𝖓𝖌𝖘𝖘𝖕𝖎𝖊𝖑𝖊 𝗈𝖉𝖊𝗋 𝗉𝖎𝖓𝖌-𝗋𝗈𝖑𝖑𝖊𝗇, 𝖉𝖆𝖔𝖎𝖎 𝖺𝖌𝖉𝖊𝖗𝖊 𝖈𝖙𝖙𝖌𝖑𝖎𝖊𝖉𝖊𝖗 𝖌𝖘𝖊𝖘𝖍 𝖘𝖈𝖜𝖉𝖔, 𝖘𝖆𝖘 𝖙𝖓 𝖘𝖎𝖘 𝖕𝖆𝖘𝖊𝖙.\n"
-    "K𝖾𝗂𝗇𝖊 𝗌𝗈𝗋𝗀𝖊, 𝖽𝗎 𝗄𝖆𝗇𝗇𝖘𝖙 𝖽𝖾𝗂𝗇𝖆 𝗋𝗈𝖑𝖑𝖊𝗇 𝖏𝖊𝖉𝖊𝗋𝖖𝖒𝖎𝖑 ä𝖓𝖉𝖎𝖘𝖘 𝖔𝖉𝖕𝖌 𝖊𝖓𝖙𝖋𝖜𝖜𝖎𝗂𝖓."
+    "H𝗂𝖾𝗋 𝗄𝖺𝗇𝗇𝗌𝗍 𝖽𝗎 𝖽𝗂𝗋 𝗆𝗂𝗍 𝖾𝗂𝗇𝖾𝗆 𝗄𝗅𝗂𝖼𝗄 𝖽𝖾𝗂𝗇𝖾 𝗋𝗈𝗅𝗅𝖾𝗇 𝖺𝗎𝗌𝗐ä𝗁𝗅𝖾𝗇!\n"
+    "Wä𝗁𝗅𝖾 𝗓.𝖻. 𝖽𝖾𝗂𝗇 𝖺𝗅𝗍𝖾𝗋, 𝖽𝖾𝗂𝗇𝖾 𝗅𝗂𝖾𝖻𝗅𝗂𝗇𝗀𝗌𝗌𝗉𝗂𝖾𝗅𝖾 𝗈𝖽𝖾𝗋 𝗉𝗂𝗇𝗀-𝗋𝗈𝗅𝗅𝖾𝗇, 𝖽𝖺𝗆𝗂𝗍 𝖺𝗇𝖽𝖾𝗋𝖾 𝗆𝗂𝗍𝗀𝗅𝗂𝖾𝖽𝖾𝗋 𝗀𝗅𝖾𝗂𝖼𝗁 𝗌𝖾𝗁𝖾𝗇 𝗄ö𝗇𝗇𝖾𝗇, 𝗐𝖺𝗌 𝗓𝗎 𝖽𝗂𝗋 𝗉𝖺𝗌𝗌𝗍.\n"
+    "K𝖾𝗂𝗇𝖾 𝗌𝗈𝗋𝗀𝖾, 𝖽𝗎 𝗄𝖺𝗇𝗇𝗌𝗍 𝖽𝖾𝗂𝗇𝖾 𝗋𝗈𝗅𝗅𝖾𝗇 𝗃𝖾𝖽𝖾𝗋𝗓𝖾𝗂𝗍 ä𝗇𝖽𝖾𝗋𝗇 𝗈𝖽𝖾𝗋 𝖾𝗇𝗍𝖿𝖾𝗋𝗇𝖾𝗇."
 )
 
 
@@ -173,7 +173,7 @@ class PingRoles(RoleSelect):
             custom_id="select_ping",
             placeholder="Ping",
             min_values=0,
-            max_values=6,
+            max_values=8,
             options=[
                 discord.SelectOption(label="Bump",                              value="1525603628256329916"),
                 discord.SelectOption(label="Umfragen",                          value="1525603628256329915"),
@@ -181,6 +181,8 @@ class PingRoles(RoleSelect):
                 discord.SelectOption(label="Giveaways",                         value="1525603628256329913"),
                 discord.SelectOption(label="Events",                            value="1525603628256329912"),
                 discord.SelectOption(label="Dead Chat",                         value="1525603628256329910"),
+                discord.SelectOption(label="free-games",                        value="1544301924973674578"),
+                discord.SelectOption(label="question of the day",               value="1548818704312176754")
             ],
         )
 
