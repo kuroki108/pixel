@@ -15,10 +15,6 @@ except ImportError:
 
 import config
 from config import ADMIN_ROLES
-from modules.ticket_system.views import all_persistent_views
-from modules.ticket_system.storage import store as ticket_store
-from modules.database import Database
-from modules.leaderboard import LeaderboardView
 from modules.selfroles import RoleView01, RoleView02, build_selfroles_embed
 from modules.self_cute_roles import cute_roles, build_cute_roles_embed
 
@@ -29,21 +25,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 log = logging.getLogger("zen_arcade")
 
 INITIAL_EXTENSIONS = [
-    "modules.ticket_system.panels",
     "modules.onboarding",
     "modules.counting",
     "modules.log",
-    "modules.number_guessing",
-    "modules.birthday",
     "modules.media_threads",
-    "modules.lvl_system.cogs.leveling",
-    "modules.moderation.cog",
-    "modules.moderation.voice",
-    "modules.free_games.cogs.checker",
-    "modules.free_games.cogs.tools",
-    "modules.free_games.cogs.settings",
-    "modules.tictactoe.cog",
-    "modules.leaderboard",
 ]
 
 intents = discord.Intents.default()
@@ -55,22 +40,11 @@ intents.voice_states = True
 class ZenArcadeBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(command_prefix="!", intents=intents)
-        self.db: Database | None = None
 
     async def setup_hook(self) -> None:
-        self.db = await Database.connect()
-        log.info("Master-Datenbank verbunden.")
-
-        ticket_store.bind(self.db.conn)
-        await ticket_store.migrate_legacy_json()
-
-        for view in all_persistent_views():
-            self.add_view(view)
-
         self.add_view(RoleView01())
         self.add_view(RoleView02())
         self.add_view(cute_roles())
-        self.add_view(LeaderboardView(self.db))
 
         for extension in INITIAL_EXTENSIONS:
             try:
@@ -89,9 +63,6 @@ class ZenArcadeBot(commands.Bot):
             log.info("Slash-Commands global synchronisiert (kann bis zu 1h dauern, bis sie überall sichtbar sind).")
 
     async def close(self) -> None:
-        if self.db:
-            await self.db.close()
-            log.info("Master-Datenbank geschlossen.")
         await super().close()
 
     async def on_ready(self) -> None:

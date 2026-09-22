@@ -2,7 +2,6 @@
 /env
 __pycache__/
 *.pyc
-modules/lvl_system/data/
-modules/modbot/data/
-/data/
+/data/*
+!/data/counting.json
 /.claude

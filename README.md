@@ -4,14 +4,10 @@ Pixel ist der Discord-Bot des Servers **zen arcade** – gebaut mit [discord.py]
 
 ## Features
 
-- 🎫 **Ticket-System** – Support- und Bewerbungs-Tickets per Panel, inklusive Claim/Close/Transcript/Delete
-- 📈 **Level-System** – Text- & Voice-XP, Rangkarten, Leaderboard, konfigurierbar per Slash-Command
-- 👋 **Onboarding** – automatische Rollenvergabe & generiertes Willkommensbild
+- 👋 **Onboarding** – automatische Rollenvergabe & Willkommens-Embed
 - 🔢 **Zählspiel** – Counting-Channel mit Achievements
 - 📝 **Mod-Log** – Logging von Message-Edits/-Deletes, Joins/Leaves/Kicks, Bans
-- 🔨 **Moderation** – `/ban`, `/kick`, `/timeout`, `/warn`, `/user info` mit persistenter Case-Historie
-- 🎙️ **Voice-Moderation** – `/vc move|disconnect|mute|unmute|muteall|unmuteall|moveall`
-- 🔢 **Number Guessing** – kleines Ratespiel per Slash-Command
+- 🧵 **Media-Threads** – automatische Threads für Medien- und Vorstellungsbereiche
 
 ## Setup
 

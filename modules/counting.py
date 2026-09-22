@@ -1,8 +1,13 @@
+import asyncio
+import json
+from pathlib import Path
+
 import discord
 from discord.ext import commands
 
 from config import ADMIN_ROLES, COUNTING_CHANNEL_ID
-from modules.database import Database
+
+COUNTING_STATE_FILE = Path(__file__).resolve().parent.parent / "data" / "counting.json"
 
 ACHIEVEMENTS = {
     42: (
@@ -126,17 +131,31 @@ ACHIEVEMENTS = {
 
 
 class Counting(commands.Cog):
-    def __init__(self, bot: commands.Bot, db: Database):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db = db
         self.count = 0
         self.last_user_id = None
+        self._state_lock = asyncio.Lock()
 
     async def cog_load(self) -> None:
-        self.count, self.last_user_id = await self.db.get_counting_state(COUNTING_CHANNEL_ID)
+        try:
+            state = json.loads(COUNTING_STATE_FILE.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            state = {}
+
+        self.count = int(state.get("count", 0))
+        self.last_user_id = state.get("last_user_id")
 
     async def _save_state(self) -> None:
-        await self.db.set_counting_state(COUNTING_CHANNEL_ID, self.count, self.last_user_id)
+        async with self._state_lock:
+            COUNTING_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            state = {
+                "count": self.count,
+                "last_user_id": self.last_user_id,
+            }
+            COUNTING_STATE_FILE.write_text(
+                json.dumps(state, indent=2) + "\n", encoding="utf-8"
+            )
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -218,5 +237,4 @@ class Counting(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    db: Database = bot.db  # type: ignore[attr-defined]
-    await bot.add_cog(Counting(bot, db))
+    await bot.add_cog(Counting(bot))
